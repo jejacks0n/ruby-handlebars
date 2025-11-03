@@ -9,9 +9,19 @@ module Handlebars
 
     def apply(context, arguments = [], block = [], else_block = [])
       arguments = [arguments] unless arguments.is_a? Array
-      args = [context] + arguments.map {|arg| arg.eval(context)} + split_block(block, else_block)
+      args = [context]
+      hash = {}
+      arguments.each do |arg|
+        if arg.is_a?(Hash) && arg.has_key?(:named_parameter)
+          named = arg[:named_parameter]
+          hash[named[:key].to_s] = named[:value].eval(context)
+        else
+          args << arg.eval(context)
+        end
+      end
+      blocks = split_block(block, else_block)
 
-      @fn.call(*args)
+      @fn.call(*args, hash: hash, block: blocks[0], else_block: blocks[1])
     end
 
     def apply_as(context, arguments = [], as_arguments = [], block = [], else_block = [])
