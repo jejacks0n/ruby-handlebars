@@ -20,6 +20,7 @@ module Handlebars
           context.with_temporary_context(name => nil, :@index => 0, :@first => false, :@last => false) do
             result = items.each_with_index.map do |item, index|
               context.add_items(name => item, :@index => index, :@first => (index == 0), :@last => (index == items.length - 1))
+              context.add_items(item) if item.respond_to?(:map)
               block.fn(context)
             end.join('')
           end
