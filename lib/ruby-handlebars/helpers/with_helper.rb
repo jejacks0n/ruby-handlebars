@@ -7,7 +7,7 @@ module Handlebars
         'with'
       end
 
-      def self.apply(context, data, block, else_block)
+      def self.apply(context, data, block:, else_block:, **_opts)
         if data
           context.with_temporary_context(data) do
             block.fn(context)
@@ -17,8 +17,8 @@ module Handlebars
         end
       end
 
-      def self.apply_as(context, data, name, block, else_block)
-        self.apply(context, { name.to_sym => data }, block, else_block)
+      def self.apply_as(context, data, name, **opts)
+        self.apply(context, { name.to_sym => data }, **opts)
       end
     end
   end

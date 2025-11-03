@@ -7,11 +7,11 @@ module Handlebars
         'each'
       end
 
-      def self.apply(context, items, block, else_block)
-        self.apply_as(context, items, :this, block, else_block)
+      def self.apply(context, items, **opts)
+        self.apply_as(context, items, :this, **opts)
       end
 
-      def self.apply_as(context, items, name, block, else_block)
+      def self.apply_as(context, items, name, hash:, block:, else_block:)
         if (items.nil? || items.empty?)
           if else_block
             result = else_block.fn(context)

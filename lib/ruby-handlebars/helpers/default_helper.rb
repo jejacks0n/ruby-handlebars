@@ -2,12 +2,12 @@ module Handlebars
   module Helpers
     class DefaultHelper
       def self.register(hbs)
-        hbs.register_helper(self.registry_name) do |context, parameters, block, else_block|
-          self.apply(context, parameters, block, else_block)
+        hbs.register_helper(self.registry_name) do |context, parameters, **opts|
+          self.apply(context, parameters, **opts)
         end if self.respond_to?(:apply)
 
-        hbs.register_as_helper(self.registry_name) do |context, parameters, as_names, block, else_block|
-          self.apply_as(context, parameters, as_names, block, else_block)
+        hbs.register_as_helper(self.registry_name) do |context, parameters, as_names, **opts|
+          self.apply_as(context, parameters, as_names, **opts)
         end if self.respond_to?(:apply_as)
       end
 

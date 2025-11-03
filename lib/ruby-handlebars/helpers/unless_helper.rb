@@ -7,7 +7,7 @@ module Handlebars
         'unless'
       end
 
-      def self.apply(context, condition, block, else_block)
+      def self.apply(context, condition, block:, else_block:, **_opts)
         condition = !condition.empty? if condition.respond_to?(:empty?)
 
         unless condition
