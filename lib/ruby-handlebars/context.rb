@@ -6,13 +6,14 @@ module Handlebars
       end
 
       def [](k)
+        return {} unless @hash.respond_to?(:has_key?)
         return @hash[k] if @hash.has_key?(k)
         return @hash[k.to_s] if @hash.has_key?(k.to_s)
 
         return true if k == :true
         return false if k == :false
         return nil if k == :nil || k == :null
-        to_number(k.to_s) || k
+        to_number(k.to_s) || nil
       end
 
       def has_key?(_k)
