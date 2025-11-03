@@ -46,6 +46,7 @@ module Handlebars
     rule(:parameter)   {
       (as_kw >> space? >> pipe).absent? >>
       (
+        argument.as(:named_parameter) |
         (path | string).as(:parameter_name) |
         (str('(') >> space? >> identifier.as(:safe_helper_name) >> (space? >> parameters.as(:parameters)).maybe >> space? >> str(')'))
       )
