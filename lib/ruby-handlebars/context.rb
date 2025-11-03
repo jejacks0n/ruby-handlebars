@@ -1,8 +1,41 @@
 module Handlebars
   class Context
+    class Data
+      def initialize(hash)
+        @hash = hash
+      end
+
+      def [](k)
+        return @hash[k] if @hash.has_key?(k)
+        return @hash[k.to_s] if @hash.has_key?(k.to_s)
+
+        return true if k == :true
+        return false if k == :false
+        return nil if k == :nil || k == :null
+        to_number(k.to_s) || k
+      end
+
+      def has_key?(_k)
+        true # yeah, we'll respond to anything.
+      end
+
+      def respond_to?(val, _ = false)
+        %w[[] has_key?].include?(val.to_s) ? true : false
+      end
+
+    private
+
+      def to_number(val)
+        result = Float(val)
+        (result % 1).zero? ? result.to_i : result
+      rescue ArgumentError, TypeError
+        false
+      end
+    end
+
     def initialize(hbs, data)
       @hbs = hbs
-      @data = data
+      @data = Data.new(data)
     end
 
     def get(path)
