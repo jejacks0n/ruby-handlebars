@@ -48,7 +48,7 @@ describe Handlebars::Handlebars do
     end
 
     it 'handles a parameter with a dash' do
-      expect(evaluate('Hello {{first-name}}', double("first-name": 'world'))).to eq('Hello world')
+      expect(evaluate('Hello {{first-name}}', {"first-name": 'world'})).to eq('Hello world')
     end
 
     context 'partials' do
@@ -161,7 +161,7 @@ describe Handlebars::Handlebars do
           "</tr>"
         ].join("\n")
 
-        hbs.register_helper('indent') do |context, block|
+        hbs.register_helper('indent') do |context, block:, hash:, else_block:|
           block.fn(context).split("\n").map do |line|
             "  #{line}"
           end.join("\n")
@@ -192,7 +192,7 @@ describe Handlebars::Handlebars do
 
     context 'as_helpers' do
       it 'can be used to have names parameters inside the block' do
-        hbs.register_as_helper('test_with') do |context, value, name, block|
+        hbs.register_as_helper('test_with') do |context, value, name, block:, hash:, else_block:|
           context.with_temporary_context(name => value) do
             block.fn(context)
           end
@@ -202,7 +202,7 @@ describe Handlebars::Handlebars do
       end
 
       it 'can have multiple "as" parameters' do
-        hbs.register_as_helper('test_with') do |context, value1, value2, name1, name2, block|
+        hbs.register_as_helper('test_with') do |context, value1, value2, name1, name2, block:, hash:, else_block:|
           mapping = {}
           mapping[name1] = value1
           mapping[name2] = value2

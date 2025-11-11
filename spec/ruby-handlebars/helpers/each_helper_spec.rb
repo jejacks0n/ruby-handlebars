@@ -243,6 +243,42 @@ describe Handlebars::Helpers::EachHelper do
         ].join
         expect(evaluate(template, {items: %w(a b c)})).to eq("a 0\nb 1\nc 2\n")
       end
+
+      it "understands ../ traversal" do
+        template = <<~TEMPLATE.strip
+          {{#each items}}
+            {{this.name}}
+            {{#each subitems}}
+              {{this.name}}
+              {{../name}}
+            {{/each}}
+          {{/each}}
+        TEMPLATE
+        data = {
+          items: [
+            {name: 'level1_item1', subitems: [{name: 'level2_item1_subitem1'}, {name: 'level2_item1_subitem2'}]},
+            {name: 'level1_item2', subitems: [{name: 'level2_item2_subitem1'}, {name: 'level2_item2_subitem2'}]},
+            {name: 'level1_item3', subitems: []}
+          ]
+        }
+        expect(evaluate(template, data)).to eq([
+          "",
+          "  level1_item1\n  ",
+          "    level2_item1_subitem1",
+          "    level1_item1\n  ",
+          "    level2_item1_subitem2",
+          "    level1_item1\n  ",
+          "",
+          "  level1_item2\n  ",
+          "    level2_item2_subitem1",
+          "    level1_item2\n  ",
+          "    level2_item2_subitem2",
+          "    level1_item2\n  ",
+          "",
+          "  level1_item3\n  ",
+          "",
+        ].join("\n"))
+      end
     end
   end
 

@@ -160,6 +160,17 @@ describe Handlebars::Parser do
         })
       end
 
+      it "with path derived parameters" do
+        expect(parser.parse('{{ uppercase ../plic }}')).to eq({
+          block_items: [
+            {
+              unsafe_helper_name: 'uppercase',
+              parameters: {parameter_name: '../plic'},
+            }
+          ]
+        })
+      end
+
       it 'block' do
         expect(parser.parse('{{#capitalize}}plic{{/capitalize}}')).to eq({
           block_items: [
