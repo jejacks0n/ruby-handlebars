@@ -1,5 +1,7 @@
 module Handlebars
   class Context
+    PATH_REGEX = /\.\.\/|[^.\/]+/
+
     class Data
       def initialize(hash)
         @hash = hash
@@ -16,12 +18,40 @@ module Handlebars
         to_number(k.to_s) || nil
       end
 
+      def []=(k, v)
+        @hash[k] = v
+      end
+
+      def dup
+        self.class.new(@hash.dup) # shallow copy.
+      end
+
       def has_key?(_k)
         true # yeah, we'll respond to anything.
       end
 
       def respond_to?(val, _ = false)
         %w[[] has_key?].include?(val.to_s) ? true : false
+      end
+
+      def keys
+        @hash.keys
+      end
+
+      def key?(...)
+        @hash.key?(...)
+      end
+
+      def empty?
+        @hash.empty?
+      end
+
+      def merge!(...)
+        @hash.merge!(...)
+      end
+
+      def map(...)
+        @hash.map(...)
       end
 
     private
@@ -40,14 +70,14 @@ module Handlebars
     end
 
     def get(path)
-      items = path.split('.'.freeze)
-      if locals.key? items.first.to_sym
+      items = path.scan(PATH_REGEX)
+      if locals.key?(items.first.to_sym)
         current = locals
       else
         current = @data
       end
 
-      until items.empty?
+      until items.empty? || current.nil?
         current = get_attribute(current, items.shift)
       end
 
@@ -78,6 +108,16 @@ module Handlebars
       hash.map { |k, v| add_item(k, v) }
     end
 
+    def with_nested_context
+      saved = get('../')
+
+      add_items(:'../' => locals.empty? ? @data : locals.dup)
+      block_result = yield
+      locals.merge!(:'../' => saved)
+
+      block_result
+    end
+
     def with_temporary_context(args = {})
       saved = args.keys.collect { |key| [key, get(key.to_s)] }.to_h
 
@@ -91,7 +131,7 @@ module Handlebars
     private
 
     def locals
-      @locals ||= {}
+      @locals ||= Data.new({})
     end
 
     def get_attribute(item, attribute)
