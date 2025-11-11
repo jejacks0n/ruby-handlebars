@@ -92,6 +92,13 @@ describe Handlebars::Handlebars do
         hbs.register_partial('with_args', "[{{fname}} {{lname}}]")
         expect(evaluate("Hello {{> with_args fname='jon' lname=(wrap_parens 'doe')}}")).to eq("Hello [jon (doe)]")
       end
+
+      it "handles missing partials" do
+        expect { evaluate("Hello {{> brackets}}", {name: 'world'}) }.to raise_error(
+          Handlebars::MissingPartial,
+          'Partial "brackets" not registered.'
+        )
+      end
     end
 
     context 'helpers' do
