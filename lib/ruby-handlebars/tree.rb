@@ -87,6 +87,12 @@ module Handlebars
       end
     end
 
+    class Comment < TreeItem.new(:comment)
+      def _eval(context)
+        ""
+      end
+    end
+
     class Block < TreeItem.new(:items)
       def _eval(context)
         items.map {|item| item._eval(context)}.join()
@@ -96,7 +102,6 @@ module Handlebars
       def add_item(i)
         items << i
       end
-
     end
   end
 
@@ -106,6 +111,7 @@ module Handlebars
     rule(replaced_safe_item: simple(:item)) {Tree::Replacement.new(item)}
     rule(str_content: simple(:content)) {Tree::String.new(content)}
     rule(parameter_name: simple(:name)) {Tree::Parameter.new(name)}
+    rule(comment: simple(:content)) {Tree::Comment.new(content)}
 
     rule(
       unsafe_helper_name: simple(:name),

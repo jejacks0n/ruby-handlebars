@@ -81,7 +81,12 @@ describe Handlebars::Parser do
           {replaced_safe_item: 'plic'}
         ]
       })
+    end
 
+    it 'comments' do
+      expect(parser.parse('{{! this is a comment }}')).to eq({
+        block_items: [{ comment: ' this is a comment ' }]
+      })
     end
 
     context 'helpers' do
