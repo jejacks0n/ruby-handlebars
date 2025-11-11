@@ -12,7 +12,7 @@ module Handlebars
     rule(:ccurly)      { str('}')}
     rule(:pipe)        { str('|')}
     rule(:eq)          { str('=')}
-
+    rule(:bang)        { str('!') }
 
     rule(:docurly)     { ocurly >> ocurly }
     rule(:dccurly)     { ccurly >> ccurly }
@@ -55,6 +55,8 @@ module Handlebars
 
     rule(:argument)    { identifier.as(:key) >> space? >> eq >> space? >> parameter.as(:value) }
     rule(:arguments)   { argument >> (space >> argument).repeat }
+
+    rule(:comment) { docurly >> bang >> match('[^}]').repeat.maybe.as(:comment) >> dccurly }
 
     rule(:unsafe_helper) { docurly >> space? >> identifier.as(:unsafe_helper_name) >> (space? >> parameters.as(:parameters)).maybe >> space? >> dccurly }
     rule(:safe_helper) { tocurly >> space? >> identifier.as(:safe_helper_name) >> (space? >> parameters.as(:parameters)).maybe >> space? >> tccurly }
@@ -109,7 +111,7 @@ module Handlebars
       dccurly
     }
 
-    rule(:block_item) { (template_content | unsafe_replacement | safe_replacement | helper | partial | block_helper | as_block_helper) }
+    rule(:block_item) { (template_content | unsafe_replacement | safe_replacement | helper | partial | block_helper | as_block_helper | comment) }
     rule(:block) { block_item.repeat.as(:block_items) }
 
     root :block
