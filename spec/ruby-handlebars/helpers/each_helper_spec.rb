@@ -1,10 +1,5 @@
-require_relative '../../spec_helper'
+require 'spec_helper'
 require_relative './shared'
-
-require_relative '../../../lib/ruby-handlebars'
-require_relative '../../../lib/ruby-handlebars/tree'
-require_relative '../../../lib/ruby-handlebars/helpers/each_helper'
-
 
 describe Handlebars::Helpers::EachHelper do
   let(:subject) { Handlebars::Helpers::EachHelper }
@@ -19,7 +14,7 @@ describe Handlebars::Helpers::EachHelper do
     let(:values) { [Handlebars::Tree::String.new('a'), Handlebars::Tree::String.new('b'), Handlebars::Tree::String.new('c') ]}
 
     it 'applies the block on all values' do
-      subject.apply(ctx, values, block, else_block)
+      subject.apply(ctx, values, block: block, else_block: else_block, hash: {})
 
       expect(block).to have_received(:fn).exactly(3).times
       expect(else_block).not_to have_received(:fn)
@@ -29,14 +24,14 @@ describe Handlebars::Helpers::EachHelper do
       let(:values) { nil }
 
       it 'uses the else_block if provided' do
-        subject.apply(ctx, values, block, else_block)
+        subject.apply(ctx, values, block: block, else_block: else_block, hash: {})
 
         expect(block).not_to have_received(:fn)
         expect(else_block).to have_received(:fn).once
       end
 
       it 'returns nil if no else_block is provided' do
-        expect(subject.apply(ctx, values, block, nil)).to be nil
+        expect(subject.apply(ctx, values, block: block, else_block: nil, hash: {})).to be nil
       end
     end
 
@@ -44,14 +39,14 @@ describe Handlebars::Helpers::EachHelper do
       let(:values) { [] }
 
       it 'uses the else_block if provided' do
-        subject.apply(ctx, values, block, else_block)
+        subject.apply(ctx, values, block: block, else_block: else_block, hash: {})
 
         expect(block).not_to have_received(:fn)
         expect(else_block).to have_received(:fn).once
       end
 
       it 'returns nil if no else_block is provided' do
-        expect(subject.apply(ctx, values, block, nil)).to be nil
+        expect(subject.apply(ctx, values, block: block, else_block: nil, hash: {})).to be nil
       end
     end
   end
@@ -119,7 +114,7 @@ describe Handlebars::Helpers::EachHelper do
         "{{/each}}</ul>"
       ].join("\n")
 
-      data = double(items: ducks)
+      data = {items: ducks}
       expect(evaluate(template, data)).to eq([
         "<ul>",
         "  <li>Huey</li>",

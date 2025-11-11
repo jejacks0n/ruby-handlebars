@@ -12,7 +12,10 @@ end
 shared_context "shared helpers integration tests" do
   let(:hbs) {Handlebars::Handlebars.new}
 
-  def evaluate(template, args = {})
+  def evaluate(template, args)
+    args[:block] ||= nil
+    args[:else_block] ||= nil
+    args[:hash] ||= {}
     hbs.compile(template).call(args)
   end
 end
