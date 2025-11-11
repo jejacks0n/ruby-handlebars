@@ -43,20 +43,5 @@ Gem::Specification.new do |s|
     s.specification_version = 4
   end
 
-  if s.respond_to? :add_runtime_dependency then
-    s.add_runtime_dependency(%q<parslet>.freeze, ["~> 1.6", ">= 1.6.2"])
-    s.add_development_dependency(%q<pry>.freeze, ["~> 0.10", ">= 0.10.1"])
-    s.add_development_dependency(%q<pry-stack_explorer>.freeze, ["~> 0.4", ">= 0.4.9.1"])
-    s.add_development_dependency(%q<rspec>.freeze, ["~> 3.1", ">= 3.1.0"])
-    s.add_development_dependency(%q<rspec-mocks>.freeze, ["~> 3.1", ">= 3.1.3"])
-    s.add_development_dependency(%q<juwelier>.freeze, ["~> 2.4"])
-  else
-    s.add_dependency(%q<parslet>.freeze, ["~> 1.6", ">= 1.6.2"])
-    s.add_dependency(%q<pry>.freeze, ["~> 0.10", ">= 0.10.1"])
-    s.add_dependency(%q<pry-stack_explorer>.freeze, ["~> 0.4", ">= 0.4.9.1"])
-    s.add_dependency(%q<rspec>.freeze, ["~> 3.1", ">= 3.1.0"])
-    s.add_dependency(%q<rspec-mocks>.freeze, ["~> 3.1", ">= 3.1.3"])
-    s.add_dependency(%q<juwelier>.freeze, ["~> 2.4"])
-  end
+  s.add_dependency("parslet", ["~> 2.0", ">= 2.0.0"])
 end
-
