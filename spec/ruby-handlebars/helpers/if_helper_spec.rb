@@ -25,7 +25,7 @@ describe Handlebars::Helpers::IfHelper do
       let(:else_block) { nil }
 
       it 'returns an empty-string' do
-        expect(subject.apply(ctx, params, block: block, else_block: else_block, hash: {})).to eq("")
+        expect(subject.apply(ctx, params, hash: {}, block: block, else_block: else_block, collapse: {})).to eq("")
 
         expect(block).not_to have_received(:fn)
         expect(else_block).not_to have_received(:fn)
@@ -80,6 +80,39 @@ describe Handlebars::Helpers::IfHelper do
         expect(evaluate(template, {first_condition: true, second_condition: false}).strip).to eq("Case 2")
         expect(evaluate(template, {first_condition: false, second_condition: true}).strip).to eq("Case 3")
         expect(evaluate(template, {first_condition: false, second_condition: false}).strip).to eq("Case 4")
+      end
+    end
+
+    context "white space" do
+      it "can be stripped in simple cases" do
+        result = evaluate("foo {{#if true}}  bar  {{/if}} baz")
+        expect(result).to eq("foo   bar   baz")
+
+        result = evaluate("foo {{~#if true}}  bar  {{/if~}} baz")
+        expect(result).to eq("foo  bar  baz")
+
+        result = evaluate("foo {{~#if true~}}  bar  {{~/if~}} baz")
+        expect(result).to eq("foobarbaz")
+      end
+
+      it "can be stripped in complex cases with else" do
+        result = evaluate("foo {{#if foo}}  bar  {{else}}  baz  {{/if}} qux", foo: true)
+        expect(result).to eq("foo   bar   qux")
+
+        result = evaluate("foo {{~#if foo}}  bar  {{else}}  baz  {{/if~}} qux", foo: true)
+        expect(result).to eq("foo  bar  qux")
+
+        result = evaluate("foo {{~#if foo~}}  bar  {{~else}}  baz  {{/if~}} qux", foo: true)
+        expect(result).to eq("foobarqux")
+
+        result = evaluate("foo {{~#if foo}}  bar  {{else}}  baz  {{/if~}} qux", foo: false)
+        expect(result).to eq("foo  baz  qux")
+
+        result = evaluate("foo {{~#if foo}}  bar  {{else~}}  baz  {{/if~}} qux", foo: false)
+        expect(result).to eq("foobaz  qux")
+
+        result = evaluate("foo {{~#if foo}}  bar  {{else~}}  baz  {{~/if~}} qux", foo: false)
+        expect(result).to eq("foobazqux")
       end
     end
   end

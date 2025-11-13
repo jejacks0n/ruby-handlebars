@@ -1,8 +1,5 @@
-require_relative '../../spec_helper'
+require 'spec_helper'
 require_relative './shared'
-
-require_relative '../../../lib/ruby-handlebars'
-require_relative '../../../lib/ruby-handlebars/helpers/unless_helper'
 
 
 describe Handlebars::Helpers::UnlessHelper do
@@ -29,7 +26,7 @@ describe Handlebars::Helpers::UnlessHelper do
       let(:else_block) { nil }
 
       it 'returns an empty-string' do
-        expect(subject.apply(ctx, params, block: block, else_block: else_block, hash: {})).to eq("")
+        expect(subject.apply(ctx, params, hash: {}, block: block, else_block: else_block, collapse: {})).to eq("")
 
         expect(block).not_to have_received(:fn)
         expect(else_block).not_to have_received(:fn)
@@ -60,6 +57,40 @@ describe Handlebars::Helpers::UnlessHelper do
       ].join("\n")
       expect(evaluate(template, {condition: false})).to eq("\n  Show something\n")
       expect(evaluate(template, {condition: true})).to eq("\n  Do not show something\n")
+    end
+
+
+    context "white space" do
+      it "can be stripped in simple cases" do
+        result = evaluate("foo {{#unless false}}  bar  {{/unless}} baz")
+        expect(result).to eq("foo   bar   baz")
+
+        result = evaluate("foo {{~#unless false}}  bar  {{/unless~}} baz")
+        expect(result).to eq("foo  bar  baz")
+
+        result = evaluate("foo {{~#unless false~}}  bar  {{~/unless~}} baz")
+        expect(result).to eq("foobarbaz")
+      end
+
+      it "can be stripped in complex cases with else" do
+        result = evaluate("foo {{#unless foo}}  bar  {{else}}  baz  {{/unless}} qux", foo: false)
+        expect(result).to eq("foo   bar   qux")
+
+        result = evaluate("foo {{~#unless foo}}  bar  {{else}}  baz  {{/unless~}} qux", foo: false)
+        expect(result).to eq("foo  bar  qux")
+
+        result = evaluate("foo {{~#unless foo~}}  bar  {{~else}}  baz  {{/unless~}} qux", foo: false)
+        expect(result).to eq("foobarqux")
+
+        result = evaluate("foo {{~#unless foo}}  bar  {{else}}  baz  {{/unless~}} qux", foo: true)
+        expect(result).to eq("foo  baz  qux")
+
+        result = evaluate("foo {{~#unless foo}}  bar  {{else~}}  baz  {{/unless~}} qux", foo: true)
+        expect(result).to eq("foobaz  qux")
+
+        result = evaluate("foo {{~#unless foo}}  bar  {{else~}}  baz  {{~/unless~}} qux", foo: true)
+        expect(result).to eq("foobazqux")
+      end
     end
   end
 end

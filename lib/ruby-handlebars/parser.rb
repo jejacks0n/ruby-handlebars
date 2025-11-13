@@ -78,10 +78,12 @@ module Handlebars
         block
       } >>
       scope {
-        docurly >> space? >> else_kw >> space? >> dccurly >> scope { block_item.repeat.as(:else_block_items) }
+        (docurly >> space? >> else_kw >> space? >> dccurly).as(:else_options) >> scope {
+          block_item.repeat.as(:else_block_items)
+        }
       }.maybe >>
       dynamic { |src, scope|
-        docurly >> slash >> space? >> str(scope.captures[:helper_name]) >> space? >> dccurly
+        (docurly >> slash >> space? >> str(scope.captures[:helper_name]) >> space? >> dccurly).as(:close_options)
       }
     }
 
@@ -97,10 +99,12 @@ module Handlebars
         block
       } >>
       scope {
-        docurly >> space? >> else_kw >> space? >> dccurly >> scope { block_item.repeat.as(:else_block_items) }
+        (docurly >> space? >> else_kw >> space? >> dccurly).as(:else_options) >> scope {
+          block_item.repeat.as(:else_block_items)
+        }
       }.maybe >>
       dynamic { |src, scope|
-        docurly >> slash >> space? >> str(scope.captures[:helper_name]) >> space? >> dccurly
+        (docurly >> slash >> space? >> str(scope.captures[:helper_name]) >> space? >> dccurly).as(:close_options)
       }
     }
 
