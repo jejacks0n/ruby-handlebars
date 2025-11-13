@@ -13,16 +13,18 @@ module Handlebars
     rule(:pipe)        { str('|')}
     rule(:eq)          { str('=')}
     rule(:bang)        { str('!') }
+    rule(:at)          { str('@') }
+    rule(:tilde)       { str('~') }
 
-    rule(:docurly)     { ocurly >> ocurly }
-    rule(:dccurly)     { ccurly >> ccurly }
-    rule(:tocurly)     { ocurly >> ocurly >> ocurly }
-    rule(:tccurly)     { ccurly >> ccurly >> ccurly }
+    rule(:docurly)     { ocurly >> ocurly >> tilde.maybe.as(:collapse_before) }
+    rule(:dccurly)     { tilde.maybe.as(:collapse_after) >> ccurly >> ccurly }
+    rule(:tocurly)     { ocurly >> ocurly >> ocurly >> tilde.maybe.as(:collapse_before) }
+    rule(:tccurly)     { tilde.maybe.as(:collapse_after) >> ccurly >> ccurly >> ccurly }
 
     rule(:else_kw)     { str('else') }
     rule(:as_kw)       { str('as') }
 
-    rule(:identifier)  { (else_kw >> space? >> dccurly).absent? >> str("../").repeat.maybe >> match['@\-a-zA-Z0-9_\?'].repeat(1) }
+    rule(:identifier)  { (else_kw >> space? >> dccurly).absent? >> at.maybe >> str("../").repeat.maybe >> match['@\-a-zA-Z0-9_\?'].repeat(1) }
     rule(:directory)   { (else_kw >> space? >> dccurly).absent? >> match['@\-a-zA-Z0-9_\/\?'].repeat(1) }
     rule(:path)        { identifier >> (dot >> (identifier | else_kw)).repeat }
 
