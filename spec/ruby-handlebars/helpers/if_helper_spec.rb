@@ -1,9 +1,5 @@
-require_relative '../../spec_helper'
+require 'spec_helper'
 require_relative './shared'
-
-require_relative '../../../lib/ruby-handlebars'
-require_relative '../../../lib/ruby-handlebars/helpers/if_helper'
-
 
 describe Handlebars::Helpers::IfHelper do
   let(:subject) { Handlebars::Helpers::IfHelper }
@@ -29,7 +25,7 @@ describe Handlebars::Helpers::IfHelper do
       let(:else_block) { nil }
 
       it 'returns an empty-string' do
-        expect(subject.apply(ctx, params, block, else_block)).to eq("")
+        expect(subject.apply(ctx, params, block: block, else_block: else_block, hash: {})).to eq("")
 
         expect(block).not_to have_received(:fn)
         expect(else_block).not_to have_received(:fn)
