@@ -12,7 +12,7 @@ module Handlebars
       end
     end
 
-    class Replacement < TreeItem.new(:item)
+    class Replacement < TreeItem.new(:item, :collapse_before, :collapse_after)
       def _eval(context)
         if context.get_helper(item.to_s).nil?
           context.get(item.to_s)
@@ -44,7 +44,7 @@ module Handlebars
       end
     end
 
-    class Helper < TreeItem.new(:name, :parameters, :block, :else_block)
+    class Helper < TreeItem.new(:name, :parameters, :block, :else_block, :collapse_before, :collapse_after)
       def _eval(context)
         helper = context.get_helper(name.to_s)
         if helper.nil?
@@ -55,7 +55,7 @@ module Handlebars
       end
     end
 
-    class AsHelper < TreeItem.new(:name, :parameters, :as_parameters, :block, :else_block)
+    class AsHelper < TreeItem.new(:name, :parameters, :as_parameters, :block, :else_block, :collapse_before, :collapse_after)
       def _eval(context)
         helper = context.get_as_helper(name.to_s)
         if helper.nil?
@@ -72,22 +72,22 @@ module Handlebars
       end
     end
 
-    class Partial < TreeItem.new(:partial_name)
+    class Partial < TreeItem.new(:partial_name, :collapse_before, :collapse_after)
       def _eval(context)
         context.get_partial(partial_name.to_s).call_with_context(context)
       end
     end
 
-    class PartialWithArgs < TreeItem.new(:partial_name, :arguments)
+    class PartialWithArgs < TreeItem.new(:partial_name, :arguments, :collapse_before, :collapse_after)
       def _eval(context)
-        [arguments].flatten.map(&:values).map do |vals| 
+        [arguments].flatten.map(&:values).map do |vals|
           context.add_item vals.first.to_s, vals.last._eval(context)
         end
         context.get_partial(partial_name.to_s).call_with_context(context)
       end
     end
 
-    class Comment < TreeItem.new(:comment)
+    class Comment < TreeItem.new(:comment, :collapse_before, :collapse_after)
       def _eval(context)
         ""
       end
@@ -95,8 +95,21 @@ module Handlebars
 
     class Block < TreeItem.new(:items)
       def _eval(context)
-        items.map {|item| item._eval(context)}.join()
+        items.each_with_index.map do |item, i|
+          value = item._eval(context).to_s
+
+          if i > 0 && items[i - 1].respond_to?(:collapse_after) && items[i - 1].collapse_after
+            value.lstrip!
+          end
+
+          if i < items.length - 1 && items[i + 1].respond_to?(:collapse_before) && items[i + 1].collapse_before
+            value.rstrip!
+          end
+
+          value
+        end.join
       end
+
       alias :fn :_eval
 
       def add_item(i)
@@ -106,87 +119,114 @@ module Handlebars
   end
 
   class Transform < Parslet::Transform
-    rule(template_content: simple(:content)) {Tree::TemplateContent.new(content)}
-    rule(replaced_unsafe_item: simple(:item)) {Tree::EscapedReplacement.new(item)}
-    rule(replaced_safe_item: simple(:item)) {Tree::Replacement.new(item)}
-    rule(str_content: simple(:content)) {Tree::String.new(content)}
-    rule(parameter_name: simple(:name)) {Tree::Parameter.new(name)}
-    rule(comment: simple(:content)) {Tree::Comment.new(content)}
+    COLLAPSABLE = {collapse_before: simple(:collapse_before), collapse_after: simple(:collapse_after)}
+
+    rule(
+      template_content: simple(:content)
+    ) { Tree::TemplateContent.new(content) }
+
+    rule(COLLAPSABLE.merge(
+      replaced_unsafe_item: simple(:item)
+    )) { Tree::EscapedReplacement.new(item, collapse_before, collapse_after) }
+
+    rule(COLLAPSABLE.merge(
+      replaced_safe_item: simple(:item)
+    )) { Tree::Replacement.new(item, collapse_before, collapse_after) }
+
+    rule(
+      str_content: simple(:content)
+    ) { Tree::String.new(content) }
+
+    rule(
+      parameter_name: simple(:name)
+    ) { Tree::Parameter.new(name) }
+
+    rule(
+      comment: simple(:content)
+    ) { Tree::Comment.new(content) }
+
+    rule(COLLAPSABLE.merge(
+      unsafe_helper_name: simple(:name),
+      parameters: subtree(:parameters)
+    )) { Tree::EscapedHelper.new(name, parameters, collapse_before, collapse_after) }
 
     rule(
       unsafe_helper_name: simple(:name),
       parameters: subtree(:parameters)
-    ) {
-      Tree::EscapedHelper.new(name, parameters)
-    }
+    ) { Tree::EscapedHelper.new(name, parameters) }
+
+    rule(COLLAPSABLE.merge(
+      safe_helper_name: simple(:name),
+      parameters: subtree(:parameters)
+    )) { Tree::Helper.new(name, parameters, collapse_before, collapse_after) }
 
     rule(
       safe_helper_name: simple(:name),
       parameters: subtree(:parameters)
-    ) {
-      Tree::Helper.new(name, parameters)
-    }
+    ) { Tree::Helper.new(name, parameters) }
 
-    rule(
+    rule(COLLAPSABLE.merge(
       helper_name: simple(:name),
       block_items: subtree(:block_items),
-    ) {
-      Tree::Helper.new(name, [], block_items)
-    }
+    )) do
+      Tree::Helper.new(name, [], block_items, collapse_before, collapse_after)
+    end
 
-    rule(
+    rule(COLLAPSABLE.merge(
       helper_name: simple(:name),
       block_items: subtree(:block_items),
       else_block_items: subtree(:else_block_items)
-    ) {
-      Tree::Helper.new(name, [], block_items, else_block_items)
-    }
+    )) do
+      Tree::Helper.new(name, [], block_items, else_block_items, collapse_before, collapse_after)
+    end
 
-    rule(
+    rule(COLLAPSABLE.merge(
       helper_name: simple(:name),
       parameters: subtree(:parameters),
       block_items: subtree(:block_items),
-    ) {
-      Tree::Helper.new(name, parameters, block_items)
-    }
+    )) do
+      Tree::Helper.new(name, parameters, block_items, collapse_before, collapse_after)
+    end
 
-    rule(
+    rule(COLLAPSABLE.merge(
       helper_name: simple(:name),
       parameters: subtree(:parameters),
       block_items: subtree(:block_items),
       else_block_items: subtree(:else_block_items)
-    ) {
-      Tree::Helper.new(name, parameters, block_items, else_block_items)
-    }
+    )) do
+      Tree::Helper.new(name, parameters, block_items, else_block_items, collapse_before, collapse_after)
+    end
 
-    rule(
+    rule(COLLAPSABLE.merge(
       helper_name: simple(:name),
       parameters: subtree(:parameters),
       as_parameters: subtree(:as_parameters),
       block_items: subtree(:block_items),
-    ) {
-      Tree::AsHelper.new(name, parameters, as_parameters, block_items)
-    }
+    )) { Tree::AsHelper.new(name, parameters, as_parameters, block_items, collapse_before, collapse_after) }
 
-    rule(
+    rule(COLLAPSABLE.merge(
       helper_name: simple(:name),
       parameters: subtree(:parameters),
       as_parameters: subtree(:as_parameters),
       block_items: subtree(:block_items),
       else_block_items: subtree(:else_block_items)
-    ) {
-      Tree::AsHelper.new(name, parameters, as_parameters, block_items, else_block_items)
-    }
-    
-    rule(
+    )) { Tree::AsHelper.new(name, parameters, as_parameters, block_items, else_block_items, collapse_before, collapse_after) }
+
+    rule(COLLAPSABLE.merge(
       partial_name: simple(:partial_name),
       arguments: subtree(:arguments)
-    ) {
-      Tree::PartialWithArgs.new(partial_name, arguments)
-    }
+    )) { Tree::PartialWithArgs.new(partial_name, arguments, collapse_before, collapse_after) }
 
-    rule(partial_name: simple(:partial_name)) {Tree::Partial.new(partial_name)}
-    rule(block_items: subtree(:block_items)) {Tree::Block.new(block_items)}
-    rule(else_block_items: subtree(:else_block_items)) {Tree::Block.new(block_items)}
+    rule(COLLAPSABLE.merge(
+      partial_name: simple(:partial_name)
+    )) { Tree::Partial.new(partial_name, collapse_before, collapse_after) }
+
+    rule(
+      block_items: subtree(:block_items)
+    ) { Tree::Block.new(block_items) }
+
+    rule(
+      else_block_items: subtree(:else_block_items)
+    ) { Tree::Block.new(block_items) }
   end
 end

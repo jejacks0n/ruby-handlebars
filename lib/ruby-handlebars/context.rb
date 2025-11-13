@@ -71,6 +71,8 @@ module Handlebars
 
     def get(path)
       items = path.scan(PATH_REGEX)
+      items[-1] = "#{items.shift}#{items[-1]}" if items.first == '@'
+
       if locals.key?(items.first.to_sym)
         current = locals
       else

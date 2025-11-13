@@ -213,6 +213,25 @@ describe Handlebars::Handlebars do
         expect(evaluate("{{#test_with name1 name2 as |duck1 duck2|}}Duck names are {{duck1}} and {{duck2}}{{/test_with}}", {name1: "Huey", name2: "Dewey"})).to eq('Duck names are Huey and Dewey')
       end
     end
+
+    context "white space" do
+      # it "can parse white space markers" do
+      #   result = evaluate("begin  {{~middle~}}   \n   end", {middle: '_middle_'})
+      #   expect(result).to eq("begin_middle_end")
+      # end
+
+      it "can parse white space markers on block helpers" do
+        result = evaluate(<<~TEMPLATE, {foo: 'foo'})
+          {{~foo~}}
+          bar
+          {{~#if true~}}
+            baz
+          {{/if}}
+        TEMPLATE
+        expect(result).to eq("asdasd")
+      end
+
+    end
   end
 
   context 'escaping characters' do
