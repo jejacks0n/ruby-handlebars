@@ -29,7 +29,7 @@ describe Handlebars::Helpers::UnlessHelper do
       let(:else_block) { nil }
 
       it 'returns an empty-string' do
-        expect(subject.apply(ctx, params, block, else_block)).to eq("")
+        expect(subject.apply(ctx, params, block: block, else_block: else_block, hash: {})).to eq("")
 
         expect(block).not_to have_received(:fn)
         expect(else_block).not_to have_received(:fn)
