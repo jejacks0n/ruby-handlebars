@@ -36,7 +36,7 @@ shared_examples "a helper running the main block" do |title, params|
   include_context "shared apply helper"
 
   it "when condition is #{title}" do
-    subject.apply(ctx, params, block: block, else_block: else_block, hash: {})
+    subject.apply(ctx, params, hash: {}, block: block, else_block: else_block, collapse: {})
 
     expect(block).to have_received(:fn).once
     expect(else_block).not_to have_received(:fn)
@@ -47,7 +47,7 @@ shared_examples "a helper running the else block" do |title, params|
   include_context "shared apply helper"
 
   it "when condition is #{title}" do
-    subject.apply(ctx, params, block: block, else_block: else_block, hash: {})
+    subject.apply(ctx, params, hash: {}, block: block, else_block: else_block, collapse: {})
 
     expect(block).not_to have_received(:fn)
     expect(else_block).to have_received(:fn).once

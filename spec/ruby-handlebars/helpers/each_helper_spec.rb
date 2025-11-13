@@ -14,7 +14,7 @@ describe Handlebars::Helpers::EachHelper do
     let(:values) { [Handlebars::Tree::String.new('a'), Handlebars::Tree::String.new('b'), Handlebars::Tree::String.new('c') ]}
 
     it 'applies the block on all values' do
-      subject.apply(ctx, values, block: block, else_block: else_block, hash: {})
+      subject.apply(ctx, values, hash: {}, block: block, else_block: else_block, collapse: {})
 
       expect(block).to have_received(:fn).exactly(3).times
       expect(else_block).not_to have_received(:fn)
@@ -24,14 +24,14 @@ describe Handlebars::Helpers::EachHelper do
       let(:values) { nil }
 
       it 'uses the else_block if provided' do
-        subject.apply(ctx, values, block: block, else_block: else_block, hash: {})
+        subject.apply(ctx, values, hash: {}, block: block, else_block: else_block, collapse: {})
 
         expect(block).not_to have_received(:fn)
         expect(else_block).to have_received(:fn).once
       end
 
       it 'returns nil if no else_block is provided' do
-        expect(subject.apply(ctx, values, block: block, else_block: nil, hash: {})).to be nil
+        expect(subject.apply(ctx, values, hash: {}, block: block, else_block: nil, collapse: {})).to be nil
       end
     end
 
@@ -39,14 +39,14 @@ describe Handlebars::Helpers::EachHelper do
       let(:values) { [] }
 
       it 'uses the else_block if provided' do
-        subject.apply(ctx, values, block: block, else_block: else_block, hash: {})
+        subject.apply(ctx, values, hash: {}, block: block, else_block: else_block, collapse: {})
 
         expect(block).not_to have_received(:fn)
         expect(else_block).to have_received(:fn).once
       end
 
       it 'returns nil if no else_block is provided' do
-        expect(subject.apply(ctx, values, block: block, else_block: nil, hash: {})).to be nil
+        expect(subject.apply(ctx, values, hash: {}, block: block, else_block: nil, collapse: {})).to be nil
       end
     end
   end
@@ -208,6 +208,38 @@ describe Handlebars::Helpers::EachHelper do
         "  ",
         "</ul>"
       ].join("\n"))
+    end
+
+    context "white space" do
+      let(:data) { {items: ['a', 'b', 'c']} }
+
+      it "can be stripped in simple cases" do
+        result = evaluate("[ {{~#each items}}  {{this}}  {{/each~}} ]", data)
+        expect(result).to eq("[  a    b    c  ]")
+
+        result = evaluate("[ {{~#each items}}  {{~this~}}  {{/each~}} ]", data)
+        expect(result).to eq("[abc]")
+
+        result = evaluate("[ {{~#each items~}}  {{this}}  {{~/each~}} ]", data)
+        expect(result).to eq("[abc]")
+      end
+
+      it "can be stripped in cases with else" do
+        result = evaluate("[ {{~#each items~}}  {{this}}  {{else}}  otherwise  {{/each~}} ]", data)
+        expect(result).to eq("[a  b  c  ]")
+
+        result = evaluate("[ {{~#each items~}}  {{this}}  {{~else}}  otherwise  {{/each~}} ]", data)
+        expect(result).to eq("[abc]")
+
+        result = evaluate("[ {{~#each nothing}} x {{else}}  otherwise  {{/each~}} ]")
+        expect(result).to eq("[  otherwise  ]")
+
+        result = evaluate("[ {{~#each nothing}} x {{else~}}  otherwise  {{~/each~}} ]")
+        expect(result).to eq("[otherwise]")
+
+        result = evaluate("[ {{~#each nothing}} x {{~/each~}} ]")
+        expect(result).to eq("[]")
+      end
     end
 
     context 'special variables' do

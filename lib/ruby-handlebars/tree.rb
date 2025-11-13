@@ -44,24 +44,27 @@ module Handlebars
       end
     end
 
-    class Helper < TreeItem.new(:name, :parameters, :block, :else_block, :collapse_before, :collapse_after)
+    class CollapseOptions < TreeItem.new(:collapse_before, :collapse_after)
       def _eval(context)
-        helper = context.get_helper(name.to_s)
-        if helper.nil?
-          context.get_helper('helperMissing').apply(context, String.new(name.to_s))
-        else
-          helper.apply(context, parameters, block, else_block)
-        end
       end
     end
 
-    class AsHelper < TreeItem.new(:name, :parameters, :as_parameters, :block, :else_block, :collapse_before, :collapse_after)
+    class Helper < TreeItem.new(:name, :parameters, :as_parameters, :collapse_before, :collapse_after, :block, :else_block, :close_options, :else_options)
       def _eval(context)
-        helper = context.get_as_helper(name.to_s)
+        helper = as_parameters ? context.get_as_helper(name.to_s) : context.get_helper(name.to_s)
         if helper.nil?
           context.get_helper('helperMissing').apply(context, String.new(name.to_s))
         else
-          helper.apply_as(context, parameters, as_parameters, block, else_block)
+          collapse = {
+            helper: CollapseOptions.new(collapse_before, collapse_after),
+            else: else_options,
+            close: close_options
+          }
+          if as_parameters
+            helper.apply_as(context, parameters, as_parameters, block, else_block, collapse)
+          else
+            helper.apply(context, parameters, block, else_block, collapse)
+          end
         end
       end
     end
@@ -98,8 +101,13 @@ module Handlebars
         items.each_with_index.map do |item, i|
           value = item._eval(context).to_s
 
-          if i > 0 && items[i - 1].respond_to?(:collapse_after) && items[i - 1].collapse_after
-            value.lstrip!
+          if i > 0
+            prev = items[i - 1]
+            if prev.respond_to?(:close_options)
+              value.lstrip! if prev.close_options&.collapse_after
+            elsif prev.respond_to?(:collapse_after)
+              value.lstrip! if prev.collapse_after
+            end
           end
 
           if i < items.length - 1 && items[i + 1].respond_to?(:collapse_before) && items[i + 1].collapse_before
@@ -141,60 +149,75 @@ module Handlebars
       parameter_name: simple(:name)
     ) { Tree::Parameter.new(name) }
 
+    # TODO: Is this still used -- does it need collapse behavior?
     rule(
       comment: simple(:content)
     ) { Tree::Comment.new(content) }
+
+    # TODO: Is this still used?
+    rule(
+      unsafe_helper_name: simple(:name),
+      parameters: subtree(:parameters)
+    ) { Tree::EscapedHelper.new(name, parameters) }
+
+    # TODO: Is this still used?
+    rule(
+      safe_helper_name: simple(:name),
+      parameters: subtree(:parameters)
+    ) { Tree::Helper.new(name, parameters) }
+
+    rule(
+      COLLAPSABLE
+    ) { Tree::CollapseOptions.new(collapse_before, collapse_after) }
 
     rule(COLLAPSABLE.merge(
       unsafe_helper_name: simple(:name),
       parameters: subtree(:parameters)
     )) { Tree::EscapedHelper.new(name, parameters, collapse_before, collapse_after) }
 
-    rule(
-      unsafe_helper_name: simple(:name),
-      parameters: subtree(:parameters)
-    ) { Tree::EscapedHelper.new(name, parameters) }
-
     rule(COLLAPSABLE.merge(
       safe_helper_name: simple(:name),
       parameters: subtree(:parameters)
-    )) { Tree::Helper.new(name, parameters, collapse_before, collapse_after) }
-
-    rule(
-      safe_helper_name: simple(:name),
-      parameters: subtree(:parameters)
-    ) { Tree::Helper.new(name, parameters) }
-
-    rule(COLLAPSABLE.merge(
-      helper_name: simple(:name),
-      block_items: subtree(:block_items),
     )) do
-      Tree::Helper.new(name, [], block_items, collapse_before, collapse_after)
+      Tree::Helper.new(name, parameters, nil, collapse_before, collapse_after)
     end
 
     rule(COLLAPSABLE.merge(
       helper_name: simple(:name),
       block_items: subtree(:block_items),
-      else_block_items: subtree(:else_block_items)
+      close_options: subtree(:close_options)
     )) do
-      Tree::Helper.new(name, [], block_items, else_block_items, collapse_before, collapse_after)
+      Tree::Helper.new(name, [], nil, collapse_before, collapse_after, block_items, nil, close_options)
+    end
+
+    rule(COLLAPSABLE.merge(
+      helper_name: simple(:name),
+      block_items: subtree(:block_items),
+      else_block_items: subtree(:else_block_items),
+      else_options: subtree(:else_options),
+      close_options: subtree(:close_options)
+    )) do
+      Tree::Helper.new(name, [], nil, collapse_before, collapse_after, block_items, else_block_items, close_options, else_options)
     end
 
     rule(COLLAPSABLE.merge(
       helper_name: simple(:name),
       parameters: subtree(:parameters),
       block_items: subtree(:block_items),
+      close_options: subtree(:close_options)
     )) do
-      Tree::Helper.new(name, parameters, block_items, collapse_before, collapse_after)
+      Tree::Helper.new(name, parameters, nil, collapse_before, collapse_after, block_items, nil, close_options)
     end
 
     rule(COLLAPSABLE.merge(
       helper_name: simple(:name),
       parameters: subtree(:parameters),
       block_items: subtree(:block_items),
-      else_block_items: subtree(:else_block_items)
+      else_block_items: subtree(:else_block_items),
+      else_options: subtree(:else_options),
+      close_options: subtree(:close_options)
     )) do
-      Tree::Helper.new(name, parameters, block_items, else_block_items, collapse_before, collapse_after)
+      Tree::Helper.new(name, parameters, nil, collapse_before, collapse_after, block_items, else_block_items, close_options, else_options)
     end
 
     rule(COLLAPSABLE.merge(
@@ -202,15 +225,22 @@ module Handlebars
       parameters: subtree(:parameters),
       as_parameters: subtree(:as_parameters),
       block_items: subtree(:block_items),
-    )) { Tree::AsHelper.new(name, parameters, as_parameters, block_items, collapse_before, collapse_after) }
+      close_options: subtree(:close_options)
+    )) do
+      Tree::Helper.new(name, parameters, as_parameters, collapse_before, collapse_after, block_items, close_options)
+    end
 
     rule(COLLAPSABLE.merge(
       helper_name: simple(:name),
       parameters: subtree(:parameters),
       as_parameters: subtree(:as_parameters),
       block_items: subtree(:block_items),
-      else_block_items: subtree(:else_block_items)
-    )) { Tree::AsHelper.new(name, parameters, as_parameters, block_items, else_block_items, collapse_before, collapse_after) }
+      else_block_items: subtree(:else_block_items),
+      else_options: subtree(:else_options),
+      close_options: subtree(:close_options)
+    )) do
+      Tree::Helper.new(name, parameters, as_parameters, collapse_before, collapse_after, block_items, else_block_items, close_options, else_options)
+    end
 
     rule(COLLAPSABLE.merge(
       partial_name: simple(:partial_name),

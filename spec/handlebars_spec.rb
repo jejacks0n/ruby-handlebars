@@ -159,7 +159,7 @@ describe Handlebars::Handlebars do
           "</tr>"
         ].join("\n")
 
-        hbs.register_helper('indent') do |context, block:, hash:, else_block:|
+        hbs.register_helper('indent') do |context, block:, hash:, else_block:, collapse:|
           block.fn(context).split("\n").map do |line|
             "  #{line}"
           end.join("\n")
@@ -190,7 +190,7 @@ describe Handlebars::Handlebars do
 
     context 'as_helpers' do
       it 'can be used to have names parameters inside the block' do
-        hbs.register_as_helper('test_with') do |context, value, name, block:, hash:, else_block:|
+        hbs.register_as_helper('test_with') do |context, value, name, block:, hash:, else_block:, collapse:|
           context.with_temporary_context(name => value) do
             block.fn(context)
           end
@@ -200,7 +200,7 @@ describe Handlebars::Handlebars do
       end
 
       it 'can have multiple "as" parameters' do
-        hbs.register_as_helper('test_with') do |context, value1, value2, name1, name2, block:, hash:, else_block:|
+        hbs.register_as_helper('test_with') do |context, value1, value2, name1, name2, block:, hash:, else_block:, collapse:|
           mapping = {}
           mapping[name1] = value1
           mapping[name2] = value2
@@ -215,20 +215,35 @@ describe Handlebars::Handlebars do
     end
 
     context "white space" do
-      # it "can parse white space markers" do
-      #   result = evaluate("begin  {{~middle~}}   \n   end", {middle: '_middle_'})
-      #   expect(result).to eq("begin_middle_end")
-      # end
+      it "can be collapsed in simple replacement cases" do
+        result = evaluate("begin  {{~middle~}}   \n   end", {middle: '_middle_'})
+        expect(result).to eq("begin_middle_end")
+      end
 
-      it "can parse white space markers on block helpers" do
-        result = evaluate(<<~TEMPLATE, {foo: 'foo'})
+      it "can be collapsed with simple block helpers" do
+        result = evaluate(<<~TEMPLATE.strip, {foo: 'foo'})
           {{~foo~}}
           bar
           {{~#if true~}}
-            baz
-          {{/if}}
+            baz1
+          {{~/if~}}
+          qux
         TEMPLATE
-        expect(result).to eq("asdasd")
+        expect(result).to eq("foobarbaz1qux")
+      end
+
+      it "can be collapsed with complex block helpers" do
+        result = evaluate(<<~TEMPLATE.strip, {foo: 'foo'})
+          {{~foo~}}
+          bar
+          {{~#if false~}}
+            baz1
+          {{~else~}}
+            baz2
+          {{~/if~}}
+          qux
+        TEMPLATE
+        expect(result).to eq("foobarbaz2qux")
       end
 
     end

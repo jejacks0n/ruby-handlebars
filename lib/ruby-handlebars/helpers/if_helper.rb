@@ -7,16 +7,26 @@ module Handlebars
         'if'
       end
 
-      def self.apply(context, condition, block:, else_block:, **_opts)
+      def self.apply(context, condition, block:, else_block:, collapse:, **_opts)
         condition = !condition.empty? if condition.respond_to?(:empty?)
 
         if condition
-          block.fn(context)
+          result = block.fn(context)
+          result.lstrip! if collapse[:helper]&.collapse_after
+          if else_block
+            result.rstrip! if collapse[:else]&.collapse_before
+          else
+            result.rstrip! if collapse[:close]&.collapse_before
+          end
         elsif else_block
-          else_block.fn(context)
+          result = else_block.fn(context)
+          result.lstrip! if collapse[:else]&.collapse_after
+          result.rstrip! if collapse[:close]&.collapse_before
         else
-          ""
+          return ""
         end
+
+        result
       end
     end
   end

@@ -7,11 +7,11 @@ module Handlebars
       @fn = fn
     end
 
-    def apply(context, arguments = [], block = [], else_block = [])
-      apply_as(context, arguments, [], block, else_block)
+    def apply(context, arguments = [], block = [], else_block = [], collapse_options = {})
+      apply_as(context, arguments, [], block, else_block, collapse_options)
     end
 
-    def apply_as(context, arguments = [], as_arguments = [], block = [], else_block = [])
+    def apply_as(context, arguments = [], as_arguments = [], block = [], else_block = [], collapse_options = {})
       arguments = [arguments] unless arguments.is_a? Array
       args = [context]
       hash = {}
@@ -29,7 +29,7 @@ module Handlebars
 
       blocks = split_block(block, else_block)
 
-      @fn.call(*args, hash: hash, block: blocks[0], else_block: blocks[1])
+      @fn.call(*args, hash: hash, block: blocks[0], else_block: blocks[1], collapse: collapse_options)
     end
 
     private
