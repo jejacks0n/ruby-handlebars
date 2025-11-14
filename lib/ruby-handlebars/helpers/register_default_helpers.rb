@@ -1,6 +1,7 @@
 require_relative 'each_helper'
 require_relative 'helper_missing_helper'
 require_relative 'if_helper'
+require_relative 'lookup_helper'
 require_relative 'unless_helper'
 require_relative 'with_helper'
 
@@ -10,6 +11,7 @@ module Handlebars
       EachHelper.register(hbs)
       HelperMissingHelper.register(hbs)
       IfHelper.register(hbs)
+      LookupHelper.register(hbs)
       UnlessHelper.register(hbs)
       WithHelper.register(hbs)
     end

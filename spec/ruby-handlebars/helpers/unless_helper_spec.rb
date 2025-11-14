@@ -1,7 +1,6 @@
 require 'spec_helper'
 require_relative './shared'
 
-
 describe Handlebars::Helpers::UnlessHelper do
   let(:subject) { Handlebars::Helpers::UnlessHelper }
   let(:hbs) {Handlebars::Handlebars.new}
