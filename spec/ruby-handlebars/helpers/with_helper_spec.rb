@@ -61,7 +61,19 @@ describe Handlebars::Helpers::WithHelper do
       expect(evaluate(template, person_data).strip).to eq("No city found")
     end
 
-    it "supports relative paths", skip: "Relative paths are not yet supported" do
+    it "supports simple relative paths" do
+      template = <<~HANDLEBARS
+        {{#with city}}
+          {{#with location}}
+            {{../name}}: {{../population}} -- {{north}}
+          {{/with}}
+        {{/with}}
+      HANDLEBARS
+
+      expect(evaluate(template, city_data).strip).to eq("San Francisco: 883305 -- 37.73,")
+    end
+
+    it "supports complex relative paths", skip: "Relative paths are not yet supported" do
       template = <<~HANDLEBARS
         {{#with city as | city |}}
           {{#with city.location as | loc |}}
