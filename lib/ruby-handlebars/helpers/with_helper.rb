@@ -9,7 +9,12 @@ module Handlebars
 
       def self.apply(context, data, block:, else_block:, collapse:, **_opts)
         if data
-          result = context.with_temporary_context(data) do
+          # TODO: helpers need a bit of a rework to handle properly
+          #       nested cases with top.second being able to create
+          #       two ../../ traversal levels. It has to happen above
+          #       this helper, or we need to change how this helper gets
+          #       its data.
+          result = context.with_nested_temporary_context(data) do
             block.fn(context)
           end
           result.lstrip! if collapse[:helper]&.collapse_after

@@ -120,6 +120,10 @@ module Handlebars
       block_result
     end
 
+    def with_nested_temporary_context(args)
+      with_nested_context { with_temporary_context(args) { yield } }
+    end
+
     def with_temporary_context(args = {})
       saved = args.keys.collect { |key| [key, get(key.to_s)] }.to_h
 

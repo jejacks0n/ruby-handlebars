@@ -53,18 +53,26 @@ module Handlebars
       def _eval(context)
         helper = as_parameters ? context.get_as_helper(name.to_s) : context.get_helper(name.to_s)
         if helper.nil?
-          context.get_helper('helperMissing').apply(context, String.new(name.to_s))
-        else
-          collapse = {
-            helper: CollapseOptions.new(collapse_before, collapse_after),
-            else: else_options,
-            close: close_options
-          }
-          if as_parameters
-            helper.apply_as(context, parameters, as_parameters, block, else_block, collapse)
+          # check the context for a matching key.
+          if context.get(name.to_s)
+            # swap the helper to "with"
+            helper = context.get_helper('with')
+            self.parameters = Parameter.new(Parslet::Slice.new(0, name.to_s))
           else
-            helper.apply(context, parameters, block, else_block, collapse)
+            # fall back to the missing helper.
+            return context.get_helper('helperMissing').apply(context, String.new(name.to_s))
           end
+        end
+
+        collapse = {
+          helper: CollapseOptions.new(collapse_before, collapse_after),
+          else: else_options,
+          close: close_options
+        }
+        if as_parameters
+          helper.apply_as(context, parameters, as_parameters, block, else_block, collapse)
+        else
+          helper.apply(context, parameters, block, else_block, collapse)
         end
       end
     end
@@ -92,7 +100,6 @@ module Handlebars
 
     class Comment < TreeItem.new(:comment, :collapse_before, :collapse_after)
       def _eval(context)
-        ""
       end
     end
 
@@ -149,18 +156,15 @@ module Handlebars
       parameter_name: simple(:name)
     ) { Tree::Parameter.new(name) }
 
-    # TODO: Is this still used -- does it need collapse behavior?
-    rule(
+    rule(COLLAPSABLE.merge(
       comment: simple(:content)
-    ) { Tree::Comment.new(content) }
+    )) { Tree::Comment.new(content, collapse_before, collapse_after) }
 
-    # TODO: Is this still used?
     rule(
       unsafe_helper_name: simple(:name),
       parameters: subtree(:parameters)
     ) { Tree::EscapedHelper.new(name, parameters) }
 
-    # TODO: Is this still used?
     rule(
       safe_helper_name: simple(:name),
       parameters: subtree(:parameters)
