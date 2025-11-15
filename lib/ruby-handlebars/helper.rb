@@ -7,7 +7,11 @@ module Handlebars
       @fn = fn
     end
 
-    def apply(context, arguments = [], block = [], else_block = [])
+    def apply(context, arguments = [], block = [], else_block = [], collapse_options = {})
+      apply_as(context, arguments, [], block, else_block, collapse_options)
+    end
+
+    def apply_as(context, arguments = [], as_arguments = [], block = [], else_block = [], collapse_options = {})
       arguments = [arguments] unless arguments.is_a? Array
       args = [context]
       hash = {}
@@ -19,17 +23,13 @@ module Handlebars
           args << arg.eval(context)
         end
       end
+
+      as_arguments = [as_arguments] unless as_arguments.is_a? Array
+      args += as_arguments.map(&:name)
+
       blocks = split_block(block, else_block)
 
-      @fn.call(*args, hash: hash, block: blocks[0], else_block: blocks[1])
-    end
-
-    def apply_as(context, arguments = [], as_arguments = [], block = [], else_block = [])
-      arguments = [arguments] unless arguments.is_a? Array
-      as_arguments = [as_arguments] unless as_arguments.is_a? Array
-      args = [context] + arguments.map {|arg| arg.eval(context)} + as_arguments.map(&:name) + split_block(block, else_block)
-
-      @fn.call(*args)
+      @fn.call(*args, hash: hash, block: blocks[0], else_block: blocks[1], collapse: collapse_options)
     end
 
     private

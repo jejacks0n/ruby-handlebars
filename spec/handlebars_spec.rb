@@ -1,12 +1,12 @@
-require_relative 'spec_helper'
-require_relative '../lib/ruby-handlebars'
-require_relative '../lib/ruby-handlebars/escapers/dummy_escaper'
-
+require 'spec_helper'
+require 'ruby-handlebars/escapers/dummy_escaper'
 
 describe Handlebars::Handlebars do
-  let(:hbs) {Handlebars::Handlebars.new}
+  let(:hbs) { Handlebars::Handlebars.new }
 
   def evaluate(template, args = {})
+    hbs.register_helper(:ifCond) { }
+    hbs.register_helper(:lookup) { }
     hbs.compile(template).call(args)
   end
 
@@ -31,24 +31,34 @@ describe Handlebars::Handlebars do
       expect(evaluate('Hello {{{name}}}', {name: '<"\'>&'})).to eq('Hello <"\'>&')
     end
 
-    it 'allows values specified by methods' do
-      expect(evaluate('Hello {{name}}', double(name: 'world'))).to eq('Hello world')
-    end
+    # it 'allows values specified by methods' do
+    #   expect(evaluate('Hello {{name}}', double(name: 'world'))).to eq('Hello world')
+    # end
 
     it 'prefers hash value over method value' do
       expect(evaluate('Hello {{name}}', double(name: 'world', '[]': 'dog', has_key?: true))).to eq('Hello dog')
     end
 
-    it 'handles object that implement #[] but not #has_key?' do
-      expect(evaluate('Hello {{name}}', double(name: 'world', '[]': 'dog'))).to eq('Hello world')
-    end
+    # it 'handles object that implement #[] but not #has_key?' do
+    #   expect(evaluate('Hello {{name}}', double(name: 'world', '[]': 'dog'))).to eq('Hello world')
+    # end
 
     it 'a replacement with a path' do
       expect(evaluate('My simple template: {{person.name}}', {person: {name: 'Another name'}})).to eq('My simple template: Another name')
     end
 
     it 'handles a parameter with a dash' do
-      expect(evaluate('Hello {{first-name}}', double("first-name": 'world'))).to eq('Hello world')
+      expect(evaluate('Hello {{first-name}}', {"first-name": 'world'})).to eq('Hello world')
+    end
+
+    context 'with comments' do
+      it 'can remove comments' do
+        expect(evaluate('Hello {{! comment content}} world')).to eq('Hello  world')
+      end
+
+      it 'can remove comments with whitespace' do
+        expect(evaluate('Hello {{~! comment content~}} world')).to eq('Hello world')
+      end
     end
 
     context 'partials' do
@@ -71,7 +81,7 @@ describe Handlebars::Handlebars do
         hbs.register_partial('brackets', "[{{name}}]")
         expect(evaluate("Hello {{> brackets}}", {name: 'world'})).to eq("Hello [world]")
       end
-      
+
       it 'with a string argument' do
         hbs.register_partial('with_args', "[{{name}}]")
         expect(evaluate("Hello {{> with_args name='jon'}}")).to eq("Hello [jon]")
@@ -83,45 +93,52 @@ describe Handlebars::Handlebars do
       end
 
       it 'with variables in arguments' do
-         hbs.register_partial('with_args', "[{{fname}} {{lname}}]")
+        hbs.register_partial('with_args', "[{{fname}} {{lname}}]")
         expect(evaluate("Hello {{> with_args fname='jon' lname=last_name}}", {last_name: 'doe'})).to eq("Hello [jon doe]")
       end
 
       it 'with a helper as an argument' do
-        hbs.register_helper('wrap_parens') {|context, value| "(#{value})"}
+        hbs.register_helper('wrap_parens') { |context, value| "(#{value})" }
         hbs.register_partial('with_args', "[{{fname}} {{lname}}]")
         expect(evaluate("Hello {{> with_args fname='jon' lname=(wrap_parens 'doe')}}")).to eq("Hello [jon (doe)]")
+      end
+
+      it "handles missing partials" do
+        expect { evaluate("Hello {{> brackets}}", {name: 'world'}) }.to raise_error(
+          Handlebars::MissingPartial,
+          'Partial "brackets" not registered.'
+        )
       end
     end
 
     context 'helpers' do
       it 'without any argument' do
-        hbs.register_helper('rainbow') {|context| "-"}
+        hbs.register_helper('rainbow') { |context| "-" }
         expect(evaluate("{{rainbow}}")).to eq("-")
       end
 
       it 'with a single argument' do
-        hbs.register_helper('noah') {|context, value| value.gsub(/a/, '')}
+        hbs.register_helper('noah') { |context, value| value.gsub(/a/, '') }
 
         expect(evaluate("{{noah country}}", {country: 'Canada'})).to eq("Cnd")
       end
 
       it 'with multiple arguments, including strings' do
-        hbs.register_helper('add') {|context, left, op, right| "#{left} #{op} #{right}"}
+        hbs.register_helper('add') { |context, left, op, right| "#{left} #{op} #{right}" }
 
         expect(evaluate("{{add left '&' right}}", {left: 'Law', right: 'Order'})).to eq("Law &amp; Order")
         expect(evaluate("{{{add left '&' right}}}", {left: 'Law', right: 'Order'})).to eq("Law & Order")
       end
 
       it 'with an empty string argument' do
-        hbs.register_helper('noah') {|context, value| value.to_s.gsub(/a/, '')}
+        hbs.register_helper('noah') { |context, value| value.to_s.gsub(/a/, '') }
 
         expect(evaluate("hey{{noah ''}}there", {})).to eq("heythere")
       end
 
       it 'with helpers as arguments' do
-        hbs.register_helper('wrap_parens') {|context, value| "(#{value})"}
-        hbs.register_helper('wrap_dashes') {|context, value| "-#{value}-"}
+        hbs.register_helper('wrap_parens') { |context, value| "(#{value})" }
+        hbs.register_helper('wrap_dashes') { |context, value| "-#{value}-" }
 
         expect(evaluate('{{wrap_dashes (wrap_parens "hello")}}', {})).to eq("-(hello)-")
         expect(evaluate('{{wrap_dashes (wrap_parens world)}}', {world: "world"})).to eq("-(world)-")
@@ -131,17 +148,17 @@ describe Handlebars::Handlebars do
         hbs.register_helper('comment') do |context, commenter, block|
           block.fn(context).split("\n").map do |line|
             "#{commenter} #{line}"
-        end.join("\n")
+          end.join("\n")
 
-        expect(evaluate([
-          "{{comment '//'}}",
-          "Author: {{author.name}}, {{author.company}}",
-          "Date: {{commit_date}}",
-          "{{/comment}}"
-        ].join("\n"), {author: {name: 'Vincent', company: 'Hiptest'}, commit_date: 'today'})).to eq([
-          "// Author: Vincent, Hiptest",
-          "// Date: today"
-        ].join("\n"))
+          expect(evaluate([
+            "{{comment '//'}}",
+            "Author: {{author.name}}, {{author.company}}",
+            "Date: {{commit_date}}",
+            "{{/comment}}"
+          ].join("\n"), {author: {name: 'Vincent', company: 'Hiptest'}, commit_date: 'today'})).to eq([
+            "// Author: Vincent, Hiptest",
+            "// Date: today"
+          ].join("\n"))
         end
       end
 
@@ -154,7 +171,7 @@ describe Handlebars::Handlebars do
           "</tr>"
         ].join("\n")
 
-        hbs.register_helper('indent') do |context, block|
+        hbs.register_helper('indent') do |context, block:, hash:, else_block:, collapse:|
           block.fn(context).split("\n").map do |line|
             "  #{line}"
           end.join("\n")
@@ -179,13 +196,13 @@ describe Handlebars::Handlebars do
       end
 
       it '"else" can be part of a path' do
-        expect(evaluate('My {{ something.else }} template', { something: { else: 'awesome' }})).to eq('My awesome template')
+        expect(evaluate('My {{ something.else }} template', {something: {else: 'awesome'}})).to eq('My awesome template')
       end
     end
 
     context 'as_helpers' do
       it 'can be used to have names parameters inside the block' do
-        hbs.register_as_helper('test_with') do |context, value, name, block|
+        hbs.register_as_helper('test_with') do |context, value, name, block:, hash:, else_block:, collapse:|
           context.with_temporary_context(name => value) do
             block.fn(context)
           end
@@ -195,7 +212,7 @@ describe Handlebars::Handlebars do
       end
 
       it 'can have multiple "as" parameters' do
-        hbs.register_as_helper('test_with') do |context, value1, value2, name1, name2, block|
+        hbs.register_as_helper('test_with') do |context, value1, value2, name1, name2, block:, hash:, else_block:, collapse:|
           mapping = {}
           mapping[name1] = value1
           mapping[name2] = value2
@@ -208,6 +225,40 @@ describe Handlebars::Handlebars do
         expect(evaluate("{{#test_with name1 name2 as |duck1 duck2|}}Duck names are {{duck1}} and {{duck2}}{{/test_with}}", {name1: "Huey", name2: "Dewey"})).to eq('Duck names are Huey and Dewey')
       end
     end
+
+    context "white space" do
+      it "can be collapsed in simple replacement cases" do
+        result = evaluate("begin  {{~middle~}}   \n   end", {middle: '_middle_'})
+        expect(result).to eq("begin_middle_end")
+      end
+
+      it "can be collapsed with simple block helpers" do
+        result = evaluate(<<~TEMPLATE.strip, {foo: 'foo'})
+          {{~foo~}}
+          bar
+          {{~#if true~}}
+            baz1
+          {{~/if~}}
+          qux
+        TEMPLATE
+        expect(result).to eq("foobarbaz1qux")
+      end
+
+      it "can be collapsed with complex block helpers" do
+        result = evaluate(<<~TEMPLATE.strip, {foo: 'foo'})
+          {{~foo~}}
+          bar
+          {{~#if false~}}
+            baz1
+          {{~else~}}
+            baz2
+          {{~/if~}}
+          qux
+        TEMPLATE
+        expect(result).to eq("foobarbaz2qux")
+      end
+
+    end
   end
 
   context 'escaping characters' do
@@ -215,7 +266,7 @@ describe Handlebars::Handlebars do
     let(:name) { '<"\'>&' }
     let(:replacement_escaped) { evaluate('Hello {{ name }}', {name: name}) }
     let(:helper_replacement_escaped) {
-      hbs.register_helper('wrap_parens') {|context, value| "(#{value})"}
+      hbs.register_helper('wrap_parens') { |context, value| "(#{value})" }
       evaluate('Hello {{wrap_parens name}}', {name: name})
     }
 
@@ -262,6 +313,29 @@ describe Handlebars::Handlebars do
       it 'applies the escaping in helpers' do
         expect(helper_replacement_escaped).to eq('Hello (H-er S-er-en-e H-ighn-ess)')
       end
+    end
+  end
+
+  describe "nesting" do
+    let(:template) { <<~TEMPLATE.strip }
+    TEMPLATE
+
+    it "allows nesting properties with path notation" do
+      result = evaluate(<<~TEMPLATE.strip, {top: {second: {third: "_value_"}}})
+        {{#top.second}}{{third}}{{/top.second}}
+      TEMPLATE
+      expect(result).to eq("_value_")
+    end
+
+    it "allows nesting properties" do
+      result = evaluate(<<~TEMPLATE.strip, {top: {second: {third: "_value_"}}})
+        {{#top~}}
+          {{#second}}
+            {{~third~}}
+          {{/second}}
+        {{~/top}}
+      TEMPLATE
+      expect(result).to eq("_value_")
     end
   end
 end

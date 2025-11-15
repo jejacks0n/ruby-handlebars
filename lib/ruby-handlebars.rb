@@ -6,6 +6,7 @@ require_relative 'ruby-handlebars/helpers/register_default_helpers'
 require_relative 'ruby-handlebars/escapers/html_escaper'
 
 module Handlebars
+  MissingPartial = Class.new(StandardError)
   class Handlebars
     attr_reader :escaper
 
@@ -42,7 +43,7 @@ module Handlebars
     end
 
     def get_partial(name)
-      @partials[name.to_s]
+      @partials[name.to_s] || raise(::Handlebars::MissingPartial, "Partial \"#{name}\" not registered.")
     end
 
     def set_escaper(escaper = nil)

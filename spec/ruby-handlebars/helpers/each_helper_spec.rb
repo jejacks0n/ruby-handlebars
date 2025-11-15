@@ -1,10 +1,5 @@
-require_relative '../../spec_helper'
+require 'spec_helper'
 require_relative './shared'
-
-require_relative '../../../lib/ruby-handlebars'
-require_relative '../../../lib/ruby-handlebars/tree'
-require_relative '../../../lib/ruby-handlebars/helpers/each_helper'
-
 
 describe Handlebars::Helpers::EachHelper do
   let(:subject) { Handlebars::Helpers::EachHelper }
@@ -19,7 +14,7 @@ describe Handlebars::Helpers::EachHelper do
     let(:values) { [Handlebars::Tree::String.new('a'), Handlebars::Tree::String.new('b'), Handlebars::Tree::String.new('c') ]}
 
     it 'applies the block on all values' do
-      subject.apply(ctx, values, block, else_block)
+      subject.apply(ctx, values, hash: {}, block: block, else_block: else_block, collapse: {})
 
       expect(block).to have_received(:fn).exactly(3).times
       expect(else_block).not_to have_received(:fn)
@@ -29,14 +24,14 @@ describe Handlebars::Helpers::EachHelper do
       let(:values) { nil }
 
       it 'uses the else_block if provided' do
-        subject.apply(ctx, values, block, else_block)
+        subject.apply(ctx, values, hash: {}, block: block, else_block: else_block, collapse: {})
 
         expect(block).not_to have_received(:fn)
         expect(else_block).to have_received(:fn).once
       end
 
       it 'returns nil if no else_block is provided' do
-        expect(subject.apply(ctx, values, block, nil)).to be nil
+        expect(subject.apply(ctx, values, hash: {}, block: block, else_block: nil, collapse: {})).to be nil
       end
     end
 
@@ -44,14 +39,14 @@ describe Handlebars::Helpers::EachHelper do
       let(:values) { [] }
 
       it 'uses the else_block if provided' do
-        subject.apply(ctx, values, block, else_block)
+        subject.apply(ctx, values, hash: {}, block: block, else_block: else_block, collapse: {})
 
         expect(block).not_to have_received(:fn)
         expect(else_block).to have_received(:fn).once
       end
 
       it 'returns nil if no else_block is provided' do
-        expect(subject.apply(ctx, values, block, nil)).to be nil
+        expect(subject.apply(ctx, values, hash: {}, block: block, else_block: nil, collapse: {})).to be nil
       end
     end
   end
@@ -119,7 +114,7 @@ describe Handlebars::Helpers::EachHelper do
         "{{/each}}</ul>"
       ].join("\n")
 
-      data = double(items: ducks)
+      data = {items: ducks}
       expect(evaluate(template, data)).to eq([
         "<ul>",
         "  <li>Huey</li>",
@@ -215,6 +210,38 @@ describe Handlebars::Helpers::EachHelper do
       ].join("\n"))
     end
 
+    context "white space" do
+      let(:data) { {items: ['a', 'b', 'c']} }
+
+      it "can be stripped in simple cases" do
+        result = evaluate("[ {{~#each items}}  {{this}}  {{/each~}} ]", data)
+        expect(result).to eq("[  a    b    c  ]")
+
+        result = evaluate("[ {{~#each items}}  {{~this~}}  {{/each~}} ]", data)
+        expect(result).to eq("[abc]")
+
+        result = evaluate("[ {{~#each items~}}  {{this}}  {{~/each~}} ]", data)
+        expect(result).to eq("[abc]")
+      end
+
+      it "can be stripped in cases with else" do
+        result = evaluate("[ {{~#each items~}}  {{this}}  {{else}}  otherwise  {{/each~}} ]", data)
+        expect(result).to eq("[a  b  c  ]")
+
+        result = evaluate("[ {{~#each items~}}  {{this}}  {{~else}}  otherwise  {{/each~}} ]", data)
+        expect(result).to eq("[abc]")
+
+        result = evaluate("[ {{~#each nothing}} x {{else}}  otherwise  {{/each~}} ]")
+        expect(result).to eq("[  otherwise  ]")
+
+        result = evaluate("[ {{~#each nothing}} x {{else~}}  otherwise  {{~/each~}} ]")
+        expect(result).to eq("[otherwise]")
+
+        result = evaluate("[ {{~#each nothing}} x {{~/each~}} ]")
+        expect(result).to eq("[]")
+      end
+    end
+
     context 'special variables' do
       it '@first' do
         template = [
@@ -247,6 +274,42 @@ describe Handlebars::Helpers::EachHelper do
           "{{/each}}"
         ].join
         expect(evaluate(template, {items: %w(a b c)})).to eq("a 0\nb 1\nc 2\n")
+      end
+
+      it "understands ../ traversal" do
+        template = <<~TEMPLATE.strip
+          {{#each items}}
+            {{this.name}}
+            {{#each subitems}}
+              {{this.name}}
+              {{../name}}
+            {{/each}}
+          {{/each}}
+        TEMPLATE
+        data = {
+          items: [
+            {name: 'level1_item1', subitems: [{name: 'level2_item1_subitem1'}, {name: 'level2_item1_subitem2'}]},
+            {name: 'level1_item2', subitems: [{name: 'level2_item2_subitem1'}, {name: 'level2_item2_subitem2'}]},
+            {name: 'level1_item3', subitems: []}
+          ]
+        }
+        expect(evaluate(template, data)).to eq([
+          "",
+          "  level1_item1\n  ",
+          "    level2_item1_subitem1",
+          "    level1_item1\n  ",
+          "    level2_item1_subitem2",
+          "    level1_item1\n  ",
+          "",
+          "  level1_item2\n  ",
+          "    level2_item2_subitem1",
+          "    level1_item2\n  ",
+          "    level2_item2_subitem2",
+          "    level1_item2\n  ",
+          "",
+          "  level1_item3\n  ",
+          "",
+        ].join("\n"))
       end
     end
   end

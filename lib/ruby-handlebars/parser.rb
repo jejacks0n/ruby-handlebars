@@ -12,17 +12,19 @@ module Handlebars
     rule(:ccurly)      { str('}')}
     rule(:pipe)        { str('|')}
     rule(:eq)          { str('=')}
+    rule(:bang)        { str('!') }
+    rule(:at)          { str('@') }
+    rule(:tilde)       { str('~') }
 
-
-    rule(:docurly)     { ocurly >> ocurly }
-    rule(:dccurly)     { ccurly >> ccurly }
-    rule(:tocurly)     { ocurly >> ocurly >> ocurly }
-    rule(:tccurly)     { ccurly >> ccurly >> ccurly }
+    rule(:docurly)     { ocurly >> ocurly >> tilde.maybe.as(:collapse_before) }
+    rule(:dccurly)     { tilde.maybe.as(:collapse_after) >> ccurly >> ccurly }
+    rule(:tocurly)     { ocurly >> ocurly >> ocurly >> tilde.maybe.as(:collapse_before) }
+    rule(:tccurly)     { tilde.maybe.as(:collapse_after) >> ccurly >> ccurly >> ccurly }
 
     rule(:else_kw)     { str('else') }
     rule(:as_kw)       { str('as') }
 
-    rule(:identifier)  { (else_kw >> space? >> dccurly).absent? >> match['@\-a-zA-Z0-9_\?'].repeat(1) }
+    rule(:identifier)  { (else_kw >> space? >> dccurly).absent? >> at.maybe >> str("../").repeat.maybe >> match['@\-a-zA-Z0-9_\.\?'].repeat(1) }
     rule(:directory)   { (else_kw >> space? >> dccurly).absent? >> match['@\-a-zA-Z0-9_\/\?'].repeat(1) }
     rule(:path)        { identifier >> (dot >> (identifier | else_kw)).repeat }
 
@@ -56,6 +58,8 @@ module Handlebars
     rule(:argument)    { identifier.as(:key) >> space? >> eq >> space? >> parameter.as(:value) }
     rule(:arguments)   { argument >> (space >> argument).repeat }
 
+    rule(:comment) { docurly >> bang >> match('[^}]').repeat.maybe.as(:comment) >> dccurly }
+
     rule(:unsafe_helper) { docurly >> space? >> identifier.as(:unsafe_helper_name) >> (space? >> parameters.as(:parameters)).maybe >> space? >> dccurly }
     rule(:safe_helper) { tocurly >> space? >> identifier.as(:safe_helper_name) >> (space? >> parameters.as(:parameters)).maybe >> space? >> tccurly }
 
@@ -64,6 +68,7 @@ module Handlebars
     rule(:as_block_helper) {
       docurly >>
       hash >>
+      space? >>
       identifier.capture(:helper_name).as(:helper_name) >>
       space >> parameters.as(:parameters) >>
       space >> as_kw >> space >> pipe >> space? >> parameters.as(:as_parameters) >> space? >> pipe >>
@@ -73,16 +78,19 @@ module Handlebars
         block
       } >>
       scope {
-        docurly >> space? >> else_kw >> space? >> dccurly >> scope { block_item.repeat.as(:else_block_items) }
+        (docurly >> space? >> else_kw >> space? >> dccurly).as(:else_options) >> scope {
+          block_item.repeat.as(:else_block_items)
+        }
       }.maybe >>
       dynamic { |src, scope|
-        docurly >> slash >> str(scope.captures[:helper_name]) >> dccurly
+        (docurly >> slash >> space? >> str(scope.captures[:helper_name]) >> space? >> dccurly).as(:close_options)
       }
     }
 
     rule(:block_helper) {
       docurly >>
       hash >>
+      space? >>
       identifier.capture(:helper_name).as(:helper_name) >>
       (space >> parameters.as(:parameters)).maybe >>
       space? >>
@@ -91,10 +99,12 @@ module Handlebars
         block
       } >>
       scope {
-        docurly >> space? >> else_kw >> space? >> dccurly >> scope { block_item.repeat.as(:else_block_items) }
+        (docurly >> space? >> else_kw >> space? >> dccurly).as(:else_options) >> scope {
+          block_item.repeat.as(:else_block_items)
+        }
       }.maybe >>
       dynamic { |src, scope|
-        docurly >> slash >> str(scope.captures[:helper_name]) >> dccurly
+        (docurly >> slash >> space? >> str(scope.captures[:helper_name]) >> space? >> dccurly).as(:close_options)
       }
     }
 
@@ -109,7 +119,7 @@ module Handlebars
       dccurly
     }
 
-    rule(:block_item) { (template_content | unsafe_replacement | safe_replacement | helper | partial | block_helper | as_block_helper) }
+    rule(:block_item) { (template_content | unsafe_replacement | safe_replacement | helper | partial | block_helper | as_block_helper | comment) }
     rule(:block) { block_item.repeat.as(:block_items) }
 
     root :block
