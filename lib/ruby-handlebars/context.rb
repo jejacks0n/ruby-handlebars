@@ -1,8 +1,14 @@
+require "forwardable"
+
 module Handlebars
   class Context
     PATH_REGEX = /\.\.\/|[^.\/]+/
 
     class Data
+      extend Forwardable
+
+      def_delegators :@hash, :[]=, :keys, :key?, :empty?, :merge!, :map
+
       def initialize(hash)
         @hash = hash
       end
@@ -18,10 +24,6 @@ module Handlebars
         to_number(k.to_s) || nil
       end
 
-      def []=(k, v)
-        @hash[k] = v
-      end
-
       def dup
         self.class.new(@hash.dup) # shallow copy.
       end
@@ -32,26 +34,6 @@ module Handlebars
 
       def respond_to?(val, _ = false)
         %w[[] has_key?].include?(val.to_s) ? true : false
-      end
-
-      def keys
-        @hash.keys
-      end
-
-      def key?(...)
-        @hash.key?(...)
-      end
-
-      def empty?
-        @hash.empty?
-      end
-
-      def merge!(...)
-        @hash.merge!(...)
-      end
-
-      def map(...)
-        @hash.map(...)
       end
 
     private
