@@ -4,7 +4,7 @@ require_relative './shared'
 describe Handlebars::Helpers::IfHelper do
   let(:subject) { Handlebars::Helpers::IfHelper }
   let(:hbs) {Handlebars::Handlebars.new}
-  let(:ctx) {Handlebars::Context.new(hbs, {})}
+  let(:ctx) {Handlebars::ContextHandler.new(hbs, {})}
 
   it_behaves_like "a registerable helper", "if"
 

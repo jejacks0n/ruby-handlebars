@@ -1,7 +1,6 @@
-require_relative '../spec_helper'
-require_relative '../../lib/ruby-handlebars/context'
+require 'spec_helper'
 
-describe Handlebars::Context do
+describe Handlebars::ContextHandler do
   let(:ctx) { described_class.new(nil, data) }
 
   context 'get' do
