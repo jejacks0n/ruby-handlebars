@@ -1,7 +1,7 @@
 require "forwardable"
 
 module Handlebars
-  class Context
+  class ContextHandler
     PATH_REGEX = /\.\.\/|[^.\/]+/
 
     class Data

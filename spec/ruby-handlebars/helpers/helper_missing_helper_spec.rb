@@ -1,15 +1,10 @@
-require_relative '../../spec_helper'
+require 'spec_helper'
 require_relative './shared'
-
-require_relative '../../../lib/ruby-handlebars'
-require_relative '../../../lib/ruby-handlebars/tree'
-require_relative '../../../lib/ruby-handlebars/helpers/helper_missing_helper'
-
 
 describe Handlebars::Helpers::HelperMissingHelper do
   let(:subject) { Handlebars::Helpers::HelperMissingHelper }
   let(:hbs) { Handlebars::Handlebars.new }
-  let(:ctx) {Handlebars::Context.new(hbs, {})}
+  let(:ctx) {Handlebars::ContextHandler.new(hbs, {})}
 
   it_behaves_like "a registerable helper", "helperMissing"
 
