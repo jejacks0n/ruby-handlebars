@@ -11,6 +11,12 @@ module Handlebars
         end if self.respond_to?(:apply_as)
       end
 
+      def self.stripped_result(result, start_collapse, end_collapse)
+        result = result.lstrip if start_collapse&.collapse_after
+        result = result.rstrip if end_collapse&.collapse_before
+        result
+      end
+
       # Should be implemented by sub-classes
       # def self.registry_name
       #   'myHelperName'
