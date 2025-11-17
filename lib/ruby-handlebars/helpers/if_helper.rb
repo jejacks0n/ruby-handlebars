@@ -9,24 +9,17 @@ module Handlebars
 
       def self.apply(context, condition, block:, else_block:, collapse:, **_opts)
         condition = !condition.empty? if condition.respond_to?(:empty?)
+        branch(condition, context, block, else_block, collapse)
+      end
 
+      def self.branch(condition, context, block, else_block, collapse)
         if condition
-          result = block.fn(context)
-          result.lstrip! if collapse[:helper]&.collapse_after
-          if else_block
-            result.rstrip! if collapse[:else]&.collapse_before
-          else
-            result.rstrip! if collapse[:close]&.collapse_before
-          end
+          stripped_result(block.fn(context), collapse[:helper], else_block.nil? ? collapse[:close] : collapse[:else])
         elsif else_block
-          result = else_block.fn(context)
-          result.lstrip! if collapse[:else]&.collapse_after
-          result.rstrip! if collapse[:close]&.collapse_before
+          stripped_result(else_block.fn(context), collapse[:else], collapse[:close])
         else
-          return ""
+          ""
         end
-
-        result
       end
     end
   end

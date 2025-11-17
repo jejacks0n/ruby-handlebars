@@ -43,19 +43,10 @@ module Handlebars
           :@last => index == items.length - 1
         }
 
-        result = context.with_temporary_context(locals.merge(extra.to_h)) do
+        context.with_temporary_context(locals.merge(extra.to_h)) do
           context.add_items(item) if item.respond_to?(:map)
-          block.fn(context)
+          stripped_result(block.fn(context), collapse[:helper], else_block.nil? ? collapse[:close] : collapse[:else])
         end
-
-        result.lstrip! if collapse[:helper]&.collapse_after
-        if else_block
-          result.rstrip! if collapse[:else]&.collapse_before
-        else
-          result.rstrip! if collapse[:close]&.collapse_before
-        end
-
-        result
       end
     end
   end

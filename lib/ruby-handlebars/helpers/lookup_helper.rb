@@ -11,9 +11,7 @@ module Handlebars
         result = lookup.respond_to?(:[]) ? lookup[key] : ''
         return result unless result.is_a?(String)
 
-        result.lstrip! if collapse[:helper]&.collapse_after
-        result.rstrip! if collapse[:close]&.collapse_before
-        result
+        stripped_result(result, collapse[:helper], collapse[:close])
       end
     end
   end
