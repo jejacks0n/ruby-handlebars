@@ -39,11 +39,13 @@ module Handlebars
     end
 
     def register_partial(name, content)
-      @partials[name.to_s] = Template.new(self, template_to_ast(content))
+      @partials[name.to_s] = { content: content, compiled: nil }
     end
 
     def get_partial(name)
-      @partials[name.to_s] || raise(::Handlebars::MissingPartial, "Partial \"#{name}\" not registered.")
+      raise(::Handlebars::MissingPartial, "Partial \"#{name}\" not registered.") unless @partials[name.to_s]
+
+      @partials[name.to_s][:compiled] ||= Template.new(self, template_to_ast(@partials[name.to_s][:content]))
     end
 
     def set_escaper(escaper = nil)
