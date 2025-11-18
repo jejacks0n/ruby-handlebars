@@ -107,7 +107,12 @@ module Handlebars
     end
 
     def with_temporary_context(args = {})
-      saved = args.keys.collect { |key| [key, get(key.to_s)] }.to_h
+      if args.is_a?(Hash)
+        saved = args.keys.collect { |key| [key, get(key.to_s)] }.to_h
+      else
+        saved = { this: get('this') }
+        args = { this: args }
+      end
 
       add_items(args)
       block_result = yield

@@ -8,7 +8,7 @@ module Handlebars
       end
 
       def self.apply(context, lookup, key, collapse:, **_opts)
-        result = lookup.respond_to?(:[]) ? lookup[key] : ''
+        result = lookup.respond_to?(:[]) ? lookup[key] : nil
         return result unless result.is_a?(String)
 
         stripped_result(result, collapse[:helper], collapse[:close])

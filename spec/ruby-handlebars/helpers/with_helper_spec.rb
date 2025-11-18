@@ -15,17 +15,25 @@ describe Handlebars::Helpers::WithHelper do
     include_context "shared helpers integration tests"
 
     let(:person_data) { { person: { firstname: "Yehuda", lastname: "Katz" }} }
-    let(:city_data) { {
-      city: {
-        name: "San Francisco",
-        summary: "San Francisco is the <b>cultural center</b> of <b>Northern California</b>",
-        location: {
-          north: "37.73,",
-          east: -122.44,
+    let(:city_data) do
+      {
+        city: {
+          name: "San Francisco",
+          summary: "San Francisco is the <b>cultural center</b> of <b>Northern California</b>",
+          location: {
+            north: "37.73,",
+            east: -122.44,
+          },
+          population: 883305,
         },
-        population: 883305,
-      },
-    } }
+      }
+    end
+
+    it "handles non object values" do
+      expect(evaluate(<<~HANDLEBARS.strip, city_data)).to eq("San Francisco")
+        {{#with city.name}}{{this}}{{/with}}
+      HANDLEBARS
+    end
 
     it "changes the evaluation context" do
       template = <<~HANDLEBARS

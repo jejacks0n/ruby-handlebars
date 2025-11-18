@@ -32,5 +32,8 @@ describe Handlebars::Helpers::LookupHelper do
       TEMPLATE
     end
 
+    it "returns nil of the data doesn't exist" do
+      expect(evaluate("before {{lookup cities 0}} after", {}).strip).to eq("before  after")
+    end
   end
 end
