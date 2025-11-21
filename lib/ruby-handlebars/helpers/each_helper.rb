@@ -24,7 +24,7 @@ module Handlebars
           case items
           when Array
             items.each_with_index.map do |item, index|
-              add_and_execute(block, context, items, item, index, else_block, collapse, name => item)
+              add_and_execute(block, context, items, item, index, else_block, collapse, name => item, :@key => index.to_s)
             end.join('')
           when Hash
             items.each_with_index.map do |(key, value), index|
