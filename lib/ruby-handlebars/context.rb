@@ -88,8 +88,12 @@ module Handlebars
       locals[key.to_sym] = value
     end
 
-    def add_items(hash)
-      hash.map { |k, v| add_item(k, v) }
+    def add_items(enumerable)
+      if enumerable.is_a?(Array)
+        enumerable.each_with_index { |v, k| add_item(k.to_s, v) }
+      else
+        enumerable.map { |k, v| add_item(k, v) }
+      end
     end
 
     def with_nested_context
