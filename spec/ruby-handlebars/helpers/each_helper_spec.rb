@@ -155,6 +155,15 @@ describe Handlebars::Helpers::EachHelper do
       ].join("\n"))
     end
 
+    it 'can handle array items' do
+      result = evaluate(<<~TEMPLATE.strip, {first: {second: [{a: :b}]}})
+        {{#each first}}{{@key}}{{/each}}
+        {{#each first.second}}{{@key}}{{/each}}
+      TEMPLATE
+
+      expect(result).to eq("second\n0")
+    end
+
     it 'imbricated' do
       data = {people: [
         {

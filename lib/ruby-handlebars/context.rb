@@ -2,56 +2,31 @@ require "forwardable"
 
 module Handlebars
   class Context
+    extend Forwardable
+
     PATH_REGEX = /\.\.\/|[^.\/]+/
 
-    class Data
-      extend Forwardable
-
-      def_delegators :@hash, :[]=, :keys, :key?, :empty?, :merge!, :map
-
-      def initialize(hash)
-        @hash = hash
-      end
-
-      def [](k)
-        return {} unless @hash.respond_to?(:has_key?)
-        return @hash[k] if @hash.has_key?(k)
-        return @hash[k.to_s] if @hash.has_key?(k.to_s)
-
-        return true if k == :true
-        return false if k == :false
-        return nil if k == :nil || k == :null
-        to_number(k.to_s) || nil
-      end
-
-      def dup
-        self.class.new(@hash.dup) # shallow copy.
-      end
-
-      def has_key?(_k)
-        true # yeah, we'll respond to anything.
-      end
-
-      def respond_to?(val, _ = false)
-        %w[[] has_key?].include?(val.to_s) ? true : false
-      end
-
-    private
-
-      def to_number(val)
-        result = Float(val)
-        (result % 1).zero? ? result.to_i : result
-      rescue ArgumentError, TypeError
-        false
-      end
-    end
+    def_delegators :@hbs, :escaper, :get_helper, :get_partial, :register_partial
 
     def initialize(hbs, data)
       @hbs = hbs
-      @data = Data.new(data)
+      @data = data || {}
     end
 
     def get(path)
+      path = path.to_s
+      return true if path == 'true'
+      return false if path == 'false'
+      return nil if %w[nil null undefined].include?(path)
+
+      if (number = parse_number(path))
+        number
+      else
+        resolve(path)
+      end
+    end
+
+    def resolve(path)
       items = path.to_s.scan(PATH_REGEX)
       items[-1] = "#{items.shift}#{items[-1]}" if items.first == '@'
 
@@ -68,28 +43,24 @@ module Handlebars
       current
     end
 
-    def escaper
-      @hbs.escaper
+    def escape(string)
+      escaper.escape(string)
     end
 
-    def get_helper(name)
-      @hbs.get_helper(name)
-    end
-
-    def get_as_helper(name)
-      @hbs.get_as_helper(name)
-    end
-
-    def get_partial(name)
-      @hbs.get_partial(name)
+    def safe(string)
+      SafeString.new(string)
     end
 
     def add_item(key, value)
       locals[key.to_sym] = value
     end
 
-    def add_items(hash)
-      hash.map { |k, v| add_item(k, v) }
+    def add_items(enumerable)
+      if enumerable.is_a?(Array)
+        enumerable.each_with_index { |v, k| add_item(k.to_s, v) }
+      else
+        enumerable.map { |k, v| add_item(k, v) }
+      end
     end
 
     def with_nested_context
@@ -124,7 +95,14 @@ module Handlebars
     private
 
     def locals
-      @locals ||= Data.new({})
+      @locals ||= {}
+    end
+
+    def parse_number(val)
+      result = Float(val)
+      (result % 1).zero? ? result.to_i : result
+    rescue ArgumentError, TypeError
+      false
     end
 
     def get_attribute(item, attribute)
@@ -132,16 +110,11 @@ module Handlebars
       str_attr = attribute.to_s
 
       if item.respond_to?(:[]) && item.respond_to?(:has_key?)
-        if item.has_key?(sym_attr)
-          return item[sym_attr]
-        elsif item.has_key?(str_attr)
-          return item[str_attr]
-        end
+        return item[sym_attr] if item.has_key?(sym_attr)
+        return item[str_attr] if item.has_key?(str_attr)
       end
 
-      if item.respond_to?(sym_attr)
-        return item.send(sym_attr)
-      end
+      item.send(sym_attr) if item.respond_to?(sym_attr)
     end
   end
 end
