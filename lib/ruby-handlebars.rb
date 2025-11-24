@@ -1,12 +1,21 @@
-require_relative 'ruby-handlebars/parser'
-require_relative 'ruby-handlebars/tree'
-require_relative 'ruby-handlebars/template'
-require_relative 'ruby-handlebars/helper'
-require_relative 'ruby-handlebars/helpers/register_default_helpers'
-require_relative 'ruby-handlebars/escapers/html_escaper'
+require "parslet"
+
+require_relative "ruby-handlebars/context"
+require_relative "ruby-handlebars/helper"
+require_relative "ruby-handlebars/parser"
+require_relative "ruby-handlebars/safe_string"
+require_relative "ruby-handlebars/template"
+require_relative "ruby-handlebars/tree"
+require_relative "ruby-handlebars/escapers/html_escaper"
+require_relative "ruby-handlebars/helpers/register_default_helpers"
 
 module Handlebars
   MissingPartial = Class.new(StandardError)
+
+  def self.escape_expression(expression)
+    Escapers::HTMLEscaper.escape(expression)
+  end
+
   class Handlebars
     attr_reader :escaper
 
@@ -22,30 +31,36 @@ module Handlebars
       Template.new(self, template_to_ast(template))
     end
 
-    def register_helper(name, &fn)
-      @helpers[name.to_s] = Helper.new(self, fn)
+    def register_helper(name, as: false, &fn)
+      (as ? @as_helpers : @helpers)[name.to_s] = Helper.new(self, fn)
     end
 
     def register_as_helper(name, &fn)
       @as_helpers[name.to_s] = Helper.new(self, fn)
     end
 
-    def get_helper(name)
-      @helpers[name.to_s]
-    end
-
-    def get_as_helper(name)
-      @as_helpers[name.to_s]
+    def get_helper(name, as: false)
+      (as ? @as_helpers : @helpers)[name.to_s]
     end
 
     def register_partial(name, content)
       @partials[name.to_s] = { content: content, compiled: nil }
     end
 
-    def get_partial(name)
-      raise(::Handlebars::MissingPartial, "Partial \"#{name}\" not registered.") unless @partials[name.to_s]
+    def get_partial(name, raise_on_missing: true)
+      partial = @partials[name.to_s]
 
-      @partials[name.to_s][:compiled] ||= Template.new(self, template_to_ast(@partials[name.to_s][:content]))
+      if partial.nil?
+        raise(::Handlebars::MissingPartial, "Partial \"#{name}\" not registered.") if raise_on_missing
+        return nil
+      end
+
+      # compile the partial now that we know it's going to be used.
+      partial[:compiled] ||= Template.new(self, template_to_ast(partial[:content]))
+    end
+
+    def escape_expression(expression)
+      @escaper.escape(expression)
     end
 
     def set_escaper(escaper = nil)

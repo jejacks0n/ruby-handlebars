@@ -98,7 +98,7 @@ describe Handlebars::Parser do
     it 'comments' do
       expect(parser.parse('{{! this is a comment }}')).to eq(
         block_items: [
-          collapse_options.merge(comment: ' this is a comment ')
+          collapse_options.merge(comment: 'this is a comment ')
         ]
       )
     end

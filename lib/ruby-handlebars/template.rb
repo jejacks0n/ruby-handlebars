@@ -1,5 +1,3 @@
-require_relative 'context'
-
 module Handlebars
   class Template
     def initialize(hbs, ast)

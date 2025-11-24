@@ -9,26 +9,19 @@ describe Handlebars::Helpers do
     it 'registers the default helpers' do
       hbs = double(Handlebars::Handlebars)
       allow(hbs).to receive(:register_helper)
-      allow(hbs).to receive(:register_as_helper)
-
 
       Handlebars::Helpers.register_default_helpers(hbs)
 
-      expect(hbs)
-        .to have_received(:register_helper)
-        .once
-        .with('if')
-        .once
-        .with('unless')
-        .once
-        .with('each')
-        .once
-        .with('helperMissing')
-
-      expect(hbs)
-        .to have_received(:register_as_helper)
-        .once
-        .with('each')
+      expect(hbs).to have_received(:register_helper)
+        .once.with('if', as: false)
+        .once.with('unless', as: false)
+        .once.with('lookup', as: false)
+        .once.with('each', as: false)
+        .once.with('each', as: true)
+        .once.with('helperMissing', as: true)
+        .once.with('helperMissing', as: false)
+        .once.with('with', as: false)
+        .once.with('with', as: true)
     end
   end
 end

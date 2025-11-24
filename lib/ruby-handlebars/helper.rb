@@ -1,5 +1,3 @@
-require_relative 'tree'
-
 module Handlebars
   class Helper
     def initialize(hbs, fn)
@@ -7,11 +5,11 @@ module Handlebars
       @fn = fn
     end
 
-    def apply(context, arguments = [], block = [], else_block = [], collapse_options = {})
-      apply_as(context, arguments, [], block, else_block, collapse_options)
+    def apply(name, context, arguments = [], block = [], else_block = [], collapse_options = {})
+      apply_as(name, context, arguments, [], block, else_block, collapse_options)
     end
 
-    def apply_as(context, arguments = [], as_arguments = [], block = [], else_block = [], collapse_options = {})
+    def apply_as(name, context, arguments = [], as_arguments = [], block = [], else_block = [], collapse_options = {})
       arguments = [arguments] unless arguments.is_a? Array
       args = [context]
       hash = {}
@@ -29,7 +27,17 @@ module Handlebars
 
       blocks = split_block(block, else_block)
 
-      @fn.call(*args, hash: hash, block: blocks[0], else_block: blocks[1], collapse: collapse_options)
+      accepted_kwargs = @fn.parameters.select { |type, _| [:key, :keyreq].include?(type) }.map(&:last)
+      accepts_any_kwargs = @fn.parameters.any? { |type, _| type == :keyrest }
+
+      kwargs = {}
+      kwargs[:name] = name if accepts_any_kwargs || accepted_kwargs.include?(:name)
+      kwargs[:hash] = hash.sort if accepts_any_kwargs || accepted_kwargs.include?(:hash)
+      kwargs[:block] = blocks[0] if accepts_any_kwargs || accepted_kwargs.include?(:block)
+      kwargs[:else_block] = blocks[1] if accepts_any_kwargs || accepted_kwargs.include?(:else_block)
+      kwargs[:collapse] = collapse_options if accepts_any_kwargs || accepted_kwargs.include?(:collapse)
+
+      @fn.call(*args, **kwargs)
     end
 
     private

@@ -21,14 +21,11 @@ shared_examples "a registerable helper" do |name|
   it "registers the \"#{name}\" helper" do
     hbs = double(Handlebars::Handlebars)
     allow(hbs).to receive(:register_helper)
-    allow(hbs).to receive(:register_as_helper)
 
     subject.register(hbs)
 
-    expect(hbs)
-      .to have_received(:register_helper)
-      .once
-      .with(name)
+    expect(hbs).to have_received(:register_helper).with(name, as: false) if subject.respond_to?(:apply)
+    expect(hbs).to have_received(:register_helper).with(name, as: true) if subject.respond_to?(:apply_as)
   end
 end
 
