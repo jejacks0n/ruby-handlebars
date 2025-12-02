@@ -3,8 +3,8 @@ require_relative './shared'
 
 describe Handlebars::Helpers::EachHelper do
   let(:subject) { Handlebars::Helpers::EachHelper }
-  let(:hbs) {Handlebars::Handlebars.new}
-  let(:ctx) {Handlebars::ContextHandler.new(hbs, {})}
+  let(:hbs) { Handlebars::Handlebars.new }
+  let(:ctx) { Handlebars::Context.new(hbs, {}) }
 
   it_behaves_like "a registerable helper", "each"
 

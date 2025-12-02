@@ -4,7 +4,7 @@ require_relative './shared'
 describe Handlebars::Helpers::HelperMissingHelper do
   let(:subject) { Handlebars::Helpers::HelperMissingHelper }
   let(:hbs) { Handlebars::Handlebars.new }
-  let(:ctx) {Handlebars::ContextHandler.new(hbs, {})}
+  let(:ctx) { Handlebars::Context.new(hbs, {}) }
 
   it_behaves_like "a registerable helper", "helperMissing"
 

@@ -19,7 +19,7 @@ module Handlebars
     end
 
     def compile(template)
-      TemplateHandler.new(self, template_to_ast(template))
+      Template.new(self, template_to_ast(template))
     end
 
     def register_helper(name, &fn)
@@ -45,7 +45,7 @@ module Handlebars
     def get_partial(name)
       raise(::Handlebars::MissingPartial, "Partial \"#{name}\" not registered.") unless @partials[name.to_s]
 
-      @partials[name.to_s][:compiled] ||= TemplateHandler.new(self, template_to_ast(@partials[name.to_s][:content]))
+      @partials[name.to_s][:compiled] ||= Template.new(self, template_to_ast(@partials[name.to_s][:content]))
     end
 
     def set_escaper(escaper = nil)
