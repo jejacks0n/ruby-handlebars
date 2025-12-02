@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Handlebars::ContextHandler do
+describe Handlebars::Context do
   let(:ctx) { described_class.new(nil, data) }
 
   context 'get' do
