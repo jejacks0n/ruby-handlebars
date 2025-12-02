@@ -1,31 +1,30 @@
 ruby-handlebars
 ===============
 
-[![Build status](https://github.com/SmartBear/ruby-handlebars/actions/workflows/ci.yml/badge.svg)](https://github.com/SmartBear/ruby-handlebars/actions/workflows/ci.yml)
-[![Maintainability](https://api.codeclimate.com/v1/badges/22dbe81de487cb27097c/maintainability)](https://codeclimate.com/github/SmartBear/ruby-handlebars/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/22dbe81de487cb27097c/test_coverage)](https://codeclimate.com/github/SmartBear/ruby-handlebars/test_coverage)
+[![Build status](https://github.com/SmartBear/ruby-handlebars/actions/workflows/ci.yml/badge.svg)](https://github.com/jejacks0n/ruby-handlebars/actions/workflows/ci.yml)
+[![Maintainability](https://qlty.sh/gh/jejacks0n/projects/ruby-handlebars/maintainability.svg)](https://qlty.sh/gh/jejacks0n/projects/ruby-handlebars)
+[![Code Coverage](https://qlty.sh/gh/jejacks0n/projects/ruby-handlebars/coverage.svg)](https://qlty.sh/gh/jejacks0n/projects/ruby-handlebars)
 
 Pure Ruby library for [Handlebars](http://handlebarsjs.com/) template system.
-The main goal of this library is to simplify the use of Ruby and Handlebars on Windows machine. If you do not have any need of working on Windows, take a look at [handlebars.rb](https://github.com/cowboyd/handlebars.rb) that uses the real Handlebars library.
 
-Installing
-----------
+The main goal of this library is to simplify the use of Ruby and Handlebars. It attempts to reduce the dependency on things like v8, and therubyracer/miniracer. If you want those complications, look at [handlebars.rb](https://github.com/cowboyd/handlebars.rb) which uses the real Handlebars library. Please note that handlebars.rb has some thread challenges that made it impossible for us to reliably use and scale.
 
-Simply run:
+## Installing
+
+Add it to your Gemfile:
 
 ```shell
-gem install ruby-handlebars
+git_source(:github) { |repo| "https://github.com/#{repo}.git" }
+gem "ruby-handlebars", github: "jejacks0n/handlebars"
 ```
 
-No need for libv8, ruby-racer or any JS related tool.
+No need for libv8, therubyracer or any JS related tools.
 
-Using
------
+## Usage
 
 A very simple case:
 
 ```ruby
-
 require 'ruby-handlebars'
 
 hbs = Handlebars::Handlebars.new
@@ -42,6 +41,7 @@ hbs.compile("Hello {{> full_name}}").call({person: {first_name: 'Pinkie', last_n
 ```
 
 Partials support parameters:
+
 ```ruby
 hbs.register_partial('full_name', "{{fname}} {{lname}}")
 hbs.compile("Hello {{> full_name fname='jon' lname='doe'}}")
@@ -51,7 +51,7 @@ hbs.compile("Hello {{> full_name fname='jon' lname='doe'}}")
 You can also register inline helpers:
 
 ```ruby
-hbs.register_helper('strip') {|context, value| value.strip}
+hbs.register_helper('strip') { |_context, value| value.strip }
 hbs.compile("Hello {{strip name}}").call({name: '                       world     '})
 # Will give (again ....): "Hello world"
 ```
@@ -59,7 +59,7 @@ hbs.compile("Hello {{strip name}}").call({name: '                       world   
 or block helpers:
 
 ```ruby
-hbs.register_helper('comment') do |context, commenter, block|
+hbs.register_helper('comment') do |context, commenter, block:, **opts|
   block.fn(context).split("\n").map do |line|
     "#{commenter} #{line}"
   end.join("\n")
@@ -69,12 +69,12 @@ hbs.compile("{{#comment '//'}}My comment{{/comment}}").call
 # Will give: "// My comment"
 ```
 
-Note that in any block helper you can use an ``else`` block:
+Note that in any block helper you can use an `else` block:
 
 ```ruby
-hbs.register_helper('markdown') do |context, block, else_block|
+hbs.register_helper('markdown') do |context, block:, else_block:, **opts|
   html = md_to_html(block.fn(context))
-  html.nil? : else_block.fn(context) : html
+  html.nil? ? else_block.fn(context) : html
 end
 
 template = [
@@ -89,49 +89,62 @@ hbs.compile(template).call({description: my_description})
 # Output will depend on the validity of the 'my_description' variable
 ```
 
-Default helpers:
-----------------
+## Default helpers
 
-Three default helpers are provided: ``each``, ``if`` and ``unless``.
+These default helpers are provided:
 
-The each helper let you walk through a list. You can either use the basic notation and referencing the current item as ``this``:
+- `each`
+- `if`
+- `unless`
+- `with`
+- `lookup`
+
+The `each` helper let you walk through a list. You can either use the basic notation and referencing the current item as `this`:
 
 ```
-  {{#each items}}
-    {{{ this }}}
-  {{else}}
-    No items
-  {{/each}}
+{{#each items}}
+  {{{ this }}}
+{{else}}
+  No items
+{{/each}}
 ```
 
 or the "as |name|" notation:
 
 ```
-  {{#each items as |item| }}
-    {{{ item }}}
-  {{else}}
-    No items
-  {{/each}}
+{{#each items as |item|}}
+  {{{ item }}}
+{{else}}
+  No items
+{{/each}}
 ```
 
-The ``if`` helper can be used to write conditionnal templates:
+The `if` helper can be used to write conditionnal templates:
 
 ```
-  {{#if my_condition}}
-    It's ok
-  {{else}}
-    or maybe not
-  {{/if}}
+{{#if my_condition}}
+  It's ok
+{{else}}
+  or maybe not
+{{/if}}
 ```
 
-The ``unless`` helper works the opposite way to ``if``:
+The `unless` helper works the opposite way to `if`:
 
 ```
-  {{#unless my_condition}}
-    It's not ok
-  {{else}}
-    or maybe it is
-  {{/unless}}
+{{#unless my_condition}}
+  It's not ok
+{{else}}
+  or maybe it is
+{{/unless}}
+```
+
+The `with` helper allows navigating through the context object.
+
+```
+{{#with a.b}}
+  {{ c }}
+{{/with}}
 ```
 
 Currently, if you call an unknown helper, it will raise an exception. You can override that by registering your own version of the ``helperMissing`` helper. Note that only the name of the missing helper will be provided.
@@ -144,18 +157,15 @@ hbs.register_helper('helperMissing') do |context, name|
 end
 ```
 
-Limitations and roadmap
------------------------
+## Limitations and roadmap
 
 This gem does not reuse the real Handlebars code (the JS one) and not everything is handled yet (but it will be someday ;) ):
 
  - the parser is not fully tested yet, it may complain with spaces ...
  - parsing errors are, well, not helpful at all
 
-Aknowledgements
----------------
+## Acknowledgements
 
-This gem would simply not exist if the handlebars team was not here. Thanks a lot for this awesome templating system.
-Thanks a lot to @cowboyd for the [handlebars.rb](https://github.com/cowboyd/handlebars.rb) gem. We used it for a while and it's great (and as told at the beginning of the README, if you do not need any Windows support, use handlebars.rb instead ;) )
+This gem would simply not exist if the handlebars team was not here. Thanks a lot for this awesome templating system. Thanks a lot to @cowboyd for the [handlebars.rb](https://github.com/cowboyd/handlebars.rb) gem.
 
 Thanks a lot to the contributors @mvz, @schuetzm and @stewartmckee for making it a way better Handlebars renderer :)
