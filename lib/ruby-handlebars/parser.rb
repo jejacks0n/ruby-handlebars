@@ -15,6 +15,7 @@ module Handlebars
     rule(:at)            { str('@') }
     rule(:tilde)         { str('~') }
     rule(:caret)         { str('^') }
+    rule(:dash)          { str('-') }
     rule(:else_kw)       { str('else') | caret }
     rule(:as_kw)         { str('as') }
 
@@ -24,6 +25,7 @@ module Handlebars
     rule(:tccurly)       { space? >> tilde.maybe.as(:collapse_after) >> ccurly >> ccurly >> ccurly }
     rule(:qocurly)       { ocurly >> ocurly >> ocurly >> ocurly }
     rule(:qccurly)       { ccurly >> ccurly >> ccurly >> ccurly }
+    rule(:ddash)         { dash >> dash }
 
     rule(:else_absent?)  { (else_kw >> space? >> dccurly).absent? }
     rule(:as_absent?)    { (as_kw >> space? >> pipe).absent? }
@@ -40,8 +42,9 @@ module Handlebars
     rule(:path)          { identifier >> (dot >> (identifier | else_kw)).repeat }
 
     rule(:nocurly)       { match('[^{}]') }
-    rule(:noocurly)       { match('[^{]') }
-    rule(:noccurly)       { match('[^}]') }
+    rule(:noocurly)      { match('[^{]') }
+    rule(:noccurly)      { match('[^}]') }
+    rule(:nodash)        { match('[^-]') }
     rule(:eof)           { any.absent? }
 
     rule(:sq_string)     { str("'") >> match("[^']").repeat.maybe.as(:str_content) >> str("'") }
@@ -109,9 +112,29 @@ module Handlebars
 
     rule(:comment) do
       docurly >>
-      bang >>
-      space? >>
-      nocurly.repeat.maybe.as(:comment) >>
+      bang >> (
+        (
+          nodash >> (
+            nocurly.repeat(1) |
+            ocurly >> nocurly |
+            ocurly >> ocurly >> nocurly |
+            ccurly >> nocurly
+          ).repeat(1)
+        ).as(:comment) |
+        (
+          ddash >> (
+            match('[^{}-]').repeat(1) |
+            dash >> nodash |
+            dash >> dash >> noccurly |
+            ocurly >> noocurly |
+            ocurly >> ocurly >> noocurly |
+            ocurly >> ocurly >> ocurly >> noocurly |
+            ccurly |
+            ocurly >> eof
+          ).repeat(1).as(:comment) >>
+          ddash
+        )
+      ) >>
       dccurly
     end
 
