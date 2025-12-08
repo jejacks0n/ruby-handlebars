@@ -95,12 +95,29 @@ describe Handlebars::Parser do
       )
     end
 
-    it 'comments' do
-      expect(parser.parse('{{! this is a comment }}')).to eq(
-        block_items: [
-          collapse_options.merge(comment: 'this is a comment ')
-        ]
-      )
+    context "with comments" do
+      it 'parses single-line comments' do
+        expect(parser.parse('foo{{! this is a {{comment} }}bar')).to eq(
+          block_items: [
+            {template_content: 'foo'},
+            collapse_options.merge(comment: ' this is a {{comment} '),
+            {template_content: 'bar'},
+          ]
+        )
+      end
+
+      it 'parses multi-line comments' do
+        template = <<~TEMPLATE.strip
+          foo{{!--\nthis is a multiline {{{comment}}},\nand it contains -- and {}.\n--}}bar
+        TEMPLATE
+        expect(parser.parse(template)).to eq(
+          block_items: [
+            {template_content: 'foo'},
+            collapse_options.merge(comment: "\nthis is a multiline {{{comment}}},\nand it contains -- and {}.\n"),
+            {template_content: 'bar'},
+          ]
+        )
+      end
     end
 
     context 'helpers' do

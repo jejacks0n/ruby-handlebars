@@ -59,6 +59,16 @@ describe Handlebars::Handlebars do
       it 'can remove comments with whitespace' do
         expect(evaluate('Hello {{~! comment content~}} world')).to eq('Hello world')
       end
+
+      it "removes multiline comments" do
+        expect(evaluate(<<~TEMPLATE.strip)).to eq("Hello\n\nworld")
+        Hello
+        {{!--
+        this is a multiline comment, with {{handlebars}} and -- included
+        --}}
+        world
+        TEMPLATE
+      end
     end
 
     context 'partials' do
