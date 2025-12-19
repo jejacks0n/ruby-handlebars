@@ -15,7 +15,7 @@ module Handlebars
   def self.escape_expression(expression)
     Escapers::HTMLEscaper.escape(expression)
   end
-
+  asdasdasd
   class Handlebars
     attr_reader :escaper
 
