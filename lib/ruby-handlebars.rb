@@ -62,7 +62,7 @@ module Handlebars
     def escape_expression(expression)
       @escaper.escape(expression)
     end
-
+    asd
     def set_escaper(escaper = nil)
       @escaper = escaper || Escapers::HTMLEscaper
     end
